@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "879899183380",
+    "project_id": "notes-for-ipad-3f442",
+    "storage_bucket": "notes-for-ipad-3f442.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:879899183380:android:turbotrack000000000000",
+        "android_client_info": {
+          "package_name": "com.britetodo.turbotrack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8AEOkfc6Hlz2tIUztl0-yN9eyyBd9rQ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:879899183380:android:turbotrackdebug00000000",
+        "android_client_info": {
+          "package_name": "com.britetodo.turbotrack.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8AEOkfc6Hlz2tIUztl0-yN9eyyBd9rQ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

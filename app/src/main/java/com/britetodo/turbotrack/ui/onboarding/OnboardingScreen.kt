@@ -111,6 +111,14 @@ fun OnboardingScreen(
                 Spacer(modifier = Modifier.height(48.dp))
             }
 
+            // Auto-advance step 11 (loading animation) after 6 seconds
+            if (currentStep == 11) {
+                LaunchedEffect(Unit) {
+                    kotlinx.coroutines.delay(6000L)
+                    currentStep = 12
+                }
+            }
+
             // Step content
             Box(modifier = Modifier.weight(1f)) {
                 when (currentStep) {
@@ -128,8 +136,8 @@ fun OnboardingScreen(
                 }
             }
 
-            // Next button (steps 0-5)
-            if (currentStep <= 5) {
+            // Next button (steps 0-10, not 11=loading, not 12=complete with own button)
+            if (currentStep <= 10) {
                 Button(
                     onClick = { currentStep++ },
                     modifier = Modifier
@@ -163,27 +171,33 @@ private fun FloatingOrbBackground() {
         label = "orbY"
     )
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(0.dp))) {
         Box(
             modifier = Modifier
                 .size(300.dp)
                 .offset((-80).dp, (-60 + offsetY).dp)
-                .blur(80.dp)
-                .background(OrbBlue, CircleShape)
+                .background(
+                    Brush.radialGradient(listOf(OrbBlue, Color.Transparent)),
+                    CircleShape
+                )
         )
         Box(
             modifier = Modifier
                 .size(200.dp)
                 .offset(200.dp, (100 - offsetY * 0.5f).dp)
-                .blur(60.dp)
-                .background(OrbPurple, CircleShape)
+                .background(
+                    Brush.radialGradient(listOf(OrbPurple, Color.Transparent)),
+                    CircleShape
+                )
         )
         Box(
             modifier = Modifier
                 .size(150.dp)
-                .offset(100.dp, (400 + offsetY * 0.3f).dp)
-                .blur(50.dp)
-                .background(OrbCyan, CircleShape)
+                .offset(100.dp, (600 + offsetY * 0.3f).dp)
+                .background(
+                    Brush.radialGradient(listOf(OrbCyan, Color.Transparent)),
+                    CircleShape
+                )
         )
     }
 }
@@ -253,8 +267,10 @@ private fun Step0Welcome() {
                 modifier = Modifier
                     .size(140.dp)
                     .scale(glowScale)
-                    .blur(40.dp)
-                    .background(TurboBlue.copy(alpha = 0.5f), CircleShape)
+                    .background(
+                        Brush.radialGradient(listOf(TurboBlue.copy(alpha = 0.4f), Color.Transparent)),
+                        CircleShape
+                    )
             )
             Box(
                 modifier = Modifier

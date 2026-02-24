@@ -39,6 +39,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FlightTakeoff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -398,7 +400,7 @@ private fun SetupAnimationStep() {
                 val (stars, text, author) = testimonials[index]
                 Card(
                     shape = RoundedCornerShape(16.dp),
-                    colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = TurboCard),
+                    colors = CardDefaults.cardColors(containerColor = TurboCard),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {

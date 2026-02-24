@@ -42,8 +42,8 @@ class MapViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
             try {
-                val pireps = aviationService.getPireps()
-                val sigmets = aviationService.getSigmets()
+                val pireps = aviationService.getPireps().body() ?: emptyList()
+                val sigmets = aviationService.getSigmets().body() ?: emptyList()
                 _state.value = _state.value.copy(
                     pireps = pireps.filter { it.lat != null && it.lon != null },
                     sigmets = sigmets.filter { (it.coords?.size ?: 0) >= 3 },

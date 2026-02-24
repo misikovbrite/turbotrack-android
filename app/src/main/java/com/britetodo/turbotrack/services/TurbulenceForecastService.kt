@@ -82,7 +82,7 @@ class TurbulenceForecastService @Inject constructor(
 
         // Count PIREPs near route
         val pirepCount = try {
-            aviationService.getPireps().size
+            aviationService.getPireps().body()?.size ?: 0
         } catch (e: Exception) { 0 }
 
         return TurbulenceForecast(

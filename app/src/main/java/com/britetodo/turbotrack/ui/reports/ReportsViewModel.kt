@@ -61,7 +61,7 @@ class ReportsViewModel @Inject constructor(
                 _state.value = _state.value.copy(isLoading = true, error = null)
             }
             try {
-                val pireps = aviationService.getPireps()
+                val pireps = aviationService.getPireps().body() ?: emptyList()
                 _state.value = _state.value.copy(
                     allPireps = pireps,
                     isLoading = false,

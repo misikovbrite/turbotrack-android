@@ -21,7 +21,6 @@ playServicesLocation = "21.3.0"
 firebase = "33.5.1"
 workManager = "2.9.1"
 splashscreen = "1.0.1"
-accompanist = "0.36.0"
 coil = "2.7.0"
 
 [libraries]

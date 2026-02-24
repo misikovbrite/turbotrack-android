@@ -1,6 +1,9 @@
 package com.britetodo.turbotrack.ui.map
 
 import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,15 +23,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
@@ -44,26 +44,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.britetodo.turbotrack.data.model.PIREPReport
-import com.britetodo.turbotrack.data.model.TurbulenceSeverity
 import com.britetodo.turbotrack.theme.SeverityExtreme
 import com.britetodo.turbotrack.theme.SeverityLight
 import com.britetodo.turbotrack.theme.SeverityModerate
-import com.britetodo.turbotrack.theme.SeverityNone
 import com.britetodo.turbotrack.theme.SeveritySevere
 import com.britetodo.turbotrack.theme.TextMuted
 import com.britetodo.turbotrack.theme.TextPrimary
 import com.britetodo.turbotrack.theme.TextSecondary
 import com.britetodo.turbotrack.theme.TurboBlue
-import com.britetodo.turbotrack.theme.TurboNavy
+import com.britetodo.turbotrack.theme.TurboCard
 import com.britetodo.turbotrack.theme.TurboNavyMid
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.Circle
@@ -73,20 +70,29 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Polygon
 import com.google.maps.android.compose.rememberCameraPositionState
 
-@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TurbulenceMapScreen(
     modifier: Modifier = Modifier,
     viewModel: MapViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState()
 
+    var locationGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> locationGranted = granted }
+
     LaunchedEffect(Unit) {
-        if (!locationPermission.status.isGranted) {
-            locationPermission.launchPermissionRequest()
-        }
+        if (!locationGranted) locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
     val cameraPositionState = rememberCameraPositionState {
@@ -99,11 +105,11 @@ fun TurbulenceMapScreen(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(
-                isMyLocationEnabled = locationPermission.status.isGranted,
+                isMyLocationEnabled = locationGranted,
                 mapType = com.google.maps.android.compose.MapType.NORMAL
             ),
             uiSettings = MapUiSettings(
-                myLocationButtonEnabled = locationPermission.status.isGranted,
+                myLocationButtonEnabled = locationGranted,
                 zoomControlsEnabled = false
             )
         ) {
@@ -113,7 +119,7 @@ fun TurbulenceMapScreen(
                 val lon = pirep.lon ?: return@forEach
                 Circle(
                     center = LatLng(lat, lon),
-                    radius = 30_000.0, // 30km
+                    radius = 30_000.0,
                     fillColor = pirep.severity.color.copy(alpha = 0.35f),
                     strokeColor = pirep.severity.color.copy(alpha = 0.8f),
                     strokeWidth = 2f,
@@ -124,12 +130,14 @@ fun TurbulenceMapScreen(
             // SIGMET polygons
             state.sigmets.forEach { sigmet ->
                 val coords = sigmet.coords ?: return@forEach
-                Polygon(
-                    points = coords.map { LatLng(it.lat, it.lon) },
-                    fillColor = Color(0xFFFF6B00).copy(alpha = 0.25f),
-                    strokeColor = Color(0xFFFF6B00).copy(alpha = 0.7f),
-                    strokeWidth = 2f
-                )
+                if (coords.size >= 3) {
+                    Polygon(
+                        points = coords.map { LatLng(it.lat, it.lon) },
+                        fillColor = Color(0xFFFF6B00).copy(alpha = 0.25f),
+                        strokeColor = Color(0xFFFF6B00).copy(alpha = 0.7f),
+                        strokeWidth = 2f
+                    )
+                }
             }
         }
 
@@ -196,9 +204,7 @@ fun TurbulenceMapScreen(
                             Text("Retry", color = TurboBlue)
                         }
                     }
-                ) {
-                    Text(error)
-                }
+                ) { Text(error) }
             }
         }
 
