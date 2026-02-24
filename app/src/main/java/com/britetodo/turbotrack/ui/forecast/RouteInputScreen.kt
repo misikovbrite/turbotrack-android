@@ -1,239 +1,707 @@
 package com.britetodo.turbotrack.ui.forecast
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Flight
-import androidx.compose.material.icons.filled.FlightLand
-import androidx.compose.material.icons.filled.FlightTakeoff
+import androidx.compose.material.icons.filled.AirplanemodeActive
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.britetodo.turbotrack.data.model.Airport
+import com.britetodo.turbotrack.data.model.TurbulenceSeverity
 import com.britetodo.turbotrack.theme.TextMuted
 import com.britetodo.turbotrack.theme.TextPrimary
 import com.britetodo.turbotrack.theme.TextSecondary
+import com.britetodo.turbotrack.theme.TurboBackground
 import com.britetodo.turbotrack.theme.TurboBlue
 import com.britetodo.turbotrack.theme.TurboCard
-import com.britetodo.turbotrack.theme.TurboNavyLight
+import com.britetodo.turbotrack.theme.TurboDivider
+
+// ── Palette constants matching iOS ──────────────────────────────────────────
+private val DotGreen  = Color(0xFF34C759)
+private val DotRed    = Color(0xFFFF3B30)
+private val DotOrange = Color(0xFFFF9500)
+private val ChipBlue  = Color(0xFF007AFF)
 
 @Composable
 fun RouteInputScreen(viewModel: RouteViewModel) {
     val state by viewModel.state.collectAsState()
+    val scrollState = rememberScrollState()
+    val focusManager = LocalFocusManager.current
 
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Where are you flying?",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextPrimary
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = "Get a personalized turbulence forecast for your route",
-            fontSize = 14.sp,
-            color = TextSecondary
-        )
-        Spacer(Modifier.height(20.dp))
-
-        // Origin input
-        OutlinedTextField(
-            value = state.originQuery,
-            onValueChange = { viewModel.setOriginQuery(it) },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("From (ICAO or city)", color = TextMuted) },
-            leadingIcon = { Icon(Icons.Default.FlightTakeoff, null, tint = TurboBlue) },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = TurboBlue,
-                unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary,
-                cursorColor = TurboBlue,
-                focusedContainerColor = TurboCard,
-                unfocusedContainerColor = TurboCard
-            ),
-            shape = RoundedCornerShape(12.dp),
-            singleLine = true
-        )
-
-        // Origin suggestions
-        AnimatedVisibility(
-            visible = state.originSuggestions.isNotEmpty() && state.origin == null,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            AirportDropdown(
-                airports = state.originSuggestions,
-                onSelect = { viewModel.selectOrigin(it) }
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // Destination input
-        OutlinedTextField(
-            value = state.destinationQuery,
-            onValueChange = { viewModel.setDestinationQuery(it) },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("To (ICAO or city)", color = TextMuted) },
-            leadingIcon = { Icon(Icons.Default.FlightLand, null, tint = TurboBlue) },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = TurboBlue,
-                unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary,
-                cursorColor = TurboBlue,
-                focusedContainerColor = TurboCard,
-                unfocusedContainerColor = TurboCard
-            ),
-            shape = RoundedCornerShape(12.dp),
-            singleLine = true
-        )
-
-        // Destination suggestions
-        AnimatedVisibility(
-            visible = state.destinationSuggestions.isNotEmpty() && state.destination == null,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            AirportDropdown(
-                airports = state.destinationSuggestions,
-                onSelect = { viewModel.selectDestination(it) }
-            )
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        // Direct ↔ Connecting toggle
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf(true to "Direct", false to "Connecting").forEach { (isDirect, label) ->
-                FilterChip(
-                    selected = state.isDirect == isDirect,
-                    onClick = { viewModel.setDirect(isDirect) },
-                    label = { Text(label) },
-                    modifier = Modifier.weight(1f),
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = TurboBlue,
-                        selectedLabelColor = Color.White,
-                        containerColor = TurboCard,
-                        labelColor = TextSecondary
-                    )
-                )
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // Period chips
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(3, 7, 14).forEach { days ->
-                FilterChip(
-                    selected = state.forecastDays == days,
-                    onClick = { viewModel.setForecastDays(days) },
-                    label = { Text("$days days") },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = TurboBlue,
-                        selectedLabelColor = Color.White,
-                        containerColor = TurboCard,
-                        labelColor = TextSecondary
-                    )
-                )
-            }
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        // Check Turbulence button
-        val canCheck = state.origin != null && state.destination != null
-        Button(
-            onClick = { viewModel.checkTurbulence() },
-            enabled = canCheck,
+    Scaffold(
+        containerColor = TurboBackground,
+        contentColor = TextPrimary
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = TurboBlue,
-                disabledContainerColor = TurboCard
-            )
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(scrollState)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { focusManager.clearFocus() }
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(Icons.Default.Flight, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.size(8.dp))
-            Text(
-                "Check Turbulence",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
 
-        state.error?.let { error ->
-            Spacer(Modifier.height(12.dp))
-            Text(error, color = Color(0xFFF44336), fontSize = 13.sp)
+            // ── Header ──────────────────────────────────────────────────────
+            HeaderSection()
+
+            // ── Direct / Connecting toggle ──────────────────────────────────
+            DirectConnectingToggle(
+                isDirect = state.isDirect,
+                onSelect = { viewModel.setDirect(it) }
+            )
+
+            // ── Route Card ─────────────────────────────────────────────────
+            RouteCard(
+                state = state,
+                onOriginTextChange = { viewModel.setOriginQuery(it) },
+                onDestinationTextChange = { viewModel.setDestinationQuery(it) },
+                onSelectOrigin = { viewModel.selectOrigin(it) },
+                onSelectDestination = { viewModel.selectDestination(it) },
+                onSwap = {
+                    val currentOrigin = state.origin
+                    val currentDest = state.destination
+                    val currentOriginQuery = state.originQuery
+                    val currentDestQuery = state.destinationQuery
+                    if (currentDest != null) viewModel.selectOrigin(currentDest)
+                    else viewModel.setOriginQuery(currentDestQuery)
+                    if (currentOrigin != null) viewModel.selectDestination(currentOrigin)
+                    else viewModel.setDestinationQuery(currentOriginQuery)
+                }
+            )
+
+            // ── Forecast Period Card ────────────────────────────────────────
+            ForecastPeriodCard(
+                forecastDays = state.forecastDays,
+                onSelect = { viewModel.setForecastDays(it) }
+            )
+
+            // ── Check Turbulence CTA ────────────────────────────────────────
+            val canCheck = state.origin != null && state.destination != null
+            Button(
+                onClick = {
+                    focusManager.clearFocus()
+                    viewModel.checkTurbulence()
+                },
+                enabled = canCheck,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ChipBlue,
+                    disabledContainerColor = Color(0xFFAEAEB2)
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AirplanemodeActive,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = Color.White
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Check Turbulence",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
+
+            // Error message
+            state.error?.let { error ->
+                Text(
+                    text = error,
+                    color = DotRed,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
+
+            // ── "What is turbulence?" text button ──────────────────────────
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                TextButton(onClick = { /* show info sheet */ }) {
+                    Text(
+                        text = "What is turbulence?",
+                        color = ChipBlue,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                }
+            }
+
+            // ── Recent Forecasts section ────────────────────────────────────
+            // Placeholder: once the ViewModel exposes a recentForecasts list
+            // this section renders. Currently stubbed with empty list guard.
+            val recentForecasts = emptyList<Pair<Pair<Airport, Airport>, TurbulenceSeverity>>()
+            if (recentForecasts.isNotEmpty()) {
+                RecentForecastsSection(recentForecasts)
+            }
+
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
 
+// ── Header ──────────────────────────────────────────────────────────────────
+
 @Composable
-private fun AirportDropdown(airports: List<Airport>, onSelect: (Airport) -> Unit) {
+private fun HeaderSection() {
     Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.AirplanemodeActive,
+            contentDescription = null,
+            tint = ChipBlue,
+            modifier = Modifier.size(44.dp)
+        )
+        Text(
+            text = "Where are you flying?",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
+        Text(
+            text = "Get a personalized turbulence forecast for your route",
+            fontSize = 15.sp,
+            color = TextSecondary,
+            lineHeight = 20.sp
+        )
+    }
+}
+
+// ── Direct / Connecting toggle ───────────────────────────────────────────────
+
+@Composable
+private fun DirectConnectingToggle(isDirect: Boolean, onSelect: (Boolean) -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(TurboNavyLight, RoundedCornerShape(0.dp, 0.dp, 12.dp, 12.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(0.dp, 0.dp, 12.dp, 12.dp))
+            .height(44.dp)
+            .clip(shape)
+            .background(Color(0xFFE5E5EA)),
+        horizontalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        airports.take(5).forEachIndexed { index, airport ->
-            Row(
+        listOf(true to "Direct", false to "Connecting").forEach { (value, label) ->
+            val selected = isDirect == value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                    .padding(3.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) ChipBlue else Color.Transparent)
+                    .clickable { onSelect(value) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    fontSize = 15.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (selected) Color.White else TextSecondary
+                )
+            }
+        }
+    }
+}
+
+// ── Route Card ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun RouteCard(
+    state: RouteUiState,
+    onOriginTextChange: (String) -> Unit,
+    onDestinationTextChange: (String) -> Unit,
+    onSelectOrigin: (Airport) -> Unit,
+    onSelectDestination: (Airport) -> Unit,
+    onSwap: () -> Unit
+) {
+    val cardShape = RoundedCornerShape(20.dp)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(elevation = 2.dp, shape = cardShape, clip = false),
+        shape = cardShape,
+        colors = CardDefaults.cardColors(containerColor = TurboCard),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column {
+            // FROM field
+            AirportField(
+                label = "FROM",
+                dot = DotGreen,
+                query = state.originQuery,
+                selectedAirport = state.origin,
+                suggestions = state.originSuggestions,
+                onTextChange = onOriginTextChange,
+                onSelect = onSelectOrigin,
+                imeAction = ImeAction.Next
+            )
+
+            // Divider with swap button
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onSelect(airport) }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .height(1.dp)
+                    .background(TurboDivider.copy(alpha = 0.4f))
+            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterEnd
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(airport.icao, color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                    Text("${airport.city}, ${airport.country}", color = TextMuted, fontSize = 12.sp)
+                // Full-width invisible divider row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(1.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE5E5EA))
+                            .clickable { onSwap() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SwapVert,
+                            contentDescription = "Swap airports",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
-                Text(airport.iata, color = TurboBlue, fontSize = 13.sp)
             }
-            if (index < airports.size - 1) {
-                Divider(color = Color.White.copy(alpha = 0.05f), thickness = 0.5.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(TurboDivider.copy(alpha = 0.4f))
+            )
+
+            // TO field
+            AirportField(
+                label = "TO",
+                dot = DotRed,
+                query = state.destinationQuery,
+                selectedAirport = state.destination,
+                suggestions = state.destinationSuggestions,
+                onTextChange = onDestinationTextChange,
+                onSelect = onSelectDestination,
+                imeAction = ImeAction.Done
+            )
+        }
+    }
+}
+
+// ── Airport Field (FROM / TO) ─────────────────────────────────────────────
+
+@Composable
+private fun AirportField(
+    label: String,
+    dot: Color,
+    query: String,
+    selectedAirport: Airport?,
+    suggestions: List<Airport>,
+    onTextChange: (String) -> Unit,
+    onSelect: (Airport) -> Unit,
+    imeAction: ImeAction
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Colored dot indicator
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(dot)
+            )
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                // Label row
+                Text(
+                    text = label,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextMuted,
+                    letterSpacing = 0.5.sp
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                if (selectedAirport != null) {
+                    // Selected state: show IATA code bold + separator + name
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = selectedAirport.iata,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "  ·  ",
+                            fontSize = 17.sp,
+                            color = TextMuted
+                        )
+                        Text(
+                            text = selectedAirport.city,
+                            fontSize = 17.sp,
+                            color = TextSecondary
+                        )
+                    }
+                } else {
+                    // Typing state: custom text field
+                    BasicTextField(
+                        value = query,
+                        onValueChange = onTextChange,
+                        textStyle = TextStyle(
+                            fontSize = 17.sp,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Normal
+                        ),
+                        cursorBrush = SolidColor(ChipBlue),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = imeAction),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.clearFocus() },
+                            onDone = { focusManager.clearFocus() }
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                            .onFocusChanged { isFocused = it.isFocused },
+                        decorationBox = { innerTextField ->
+                            Box {
+                                if (query.isEmpty()) {
+                                    Text(
+                                        text = if (label == "FROM") "City or airport code" else "City or airport code",
+                                        fontSize = 17.sp,
+                                        color = TextMuted
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
+                    )
+                }
+            }
+
+            // Clear / chevron for selected airport
+            if (selectedAirport != null) {
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(TextMuted.copy(alpha = 0.3f))
+                        .clickable { onTextChange("") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "×",
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 14.sp
+                    )
+                }
+            }
+        }
+
+        // Suggestions dropdown (inside the card)
+        AnimatedVisibility(
+            visible = suggestions.isNotEmpty() && selectedAirport == null && query.isNotBlank(),
+            enter = expandVertically(animationSpec = tween(180)) + fadeIn(tween(180)),
+            exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(tween(180))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFF8F8FA))
+            ) {
+                Divider(color = TurboDivider.copy(alpha = 0.4f), thickness = 0.5.dp)
+                suggestions.take(5).forEachIndexed { index, airport ->
+                    SuggestionRow(airport = airport, onClick = { onSelect(airport) })
+                    if (index < suggestions.take(5).lastIndex) {
+                        Divider(
+                            modifier = Modifier.padding(start = 52.dp),
+                            color = TurboDivider.copy(alpha = 0.4f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── Suggestion Row ───────────────────────────────────────────────────────────
+
+@Composable
+private fun SuggestionRow(airport: Airport, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // IATA badge
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(ChipBlue.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = airport.iata,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = ChipBlue
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = airport.name,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextPrimary,
+                maxLines = 1
+            )
+            Text(
+                text = "${airport.city}, ${airport.country}",
+                fontSize = 12.sp,
+                color = TextSecondary
+            )
+        }
+
+        Text(
+            text = airport.icao,
+            fontSize = 12.sp,
+            color = TextMuted,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+// ── Forecast Period Card ─────────────────────────────────────────────────────
+
+@Composable
+private fun ForecastPeriodCard(forecastDays: Int, onSelect: (Int) -> Unit) {
+    val cardShape = RoundedCornerShape(20.dp)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(elevation = 2.dp, shape = cardShape, clip = false),
+        shape = cardShape,
+        colors = CardDefaults.cardColors(containerColor = TurboCard),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+            Text(
+                text = "Forecast Period",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextSecondary,
+                letterSpacing = 0.3.sp
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                listOf(3, 7, 14).forEach { days ->
+                    val selected = forecastDays == days
+                    val chipShape = RoundedCornerShape(12.dp)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(chipShape)
+                            .background(
+                                if (selected) ChipBlue else Color(0xFFE5E5EA)
+                            )
+                            .clickable { onSelect(days) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$days days",
+                            fontSize = 15.sp,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (selected) Color.White else TextSecondary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── Recent Forecasts Section ─────────────────────────────────────────────────
+
+@Composable
+private fun RecentForecastsSection(
+    forecasts: List<Pair<Pair<Airport, Airport>, TurbulenceSeverity>>
+) {
+    val cardShape = RoundedCornerShape(20.dp)
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Recent Forecasts",
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextPrimary,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(elevation = 2.dp, shape = cardShape, clip = false),
+            shape = cardShape,
+            colors = CardDefaults.cardColors(containerColor = TurboCard),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        ) {
+            Column {
+                forecasts.forEachIndexed { index, (route, severity) ->
+                    val (origin, destination) = route
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Severity dot
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(severity.color)
+                        )
+
+                        Spacer(Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${origin.iata} → ${destination.iata}",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = "${origin.city} to ${destination.city}",
+                                fontSize = 13.sp,
+                                color = TextSecondary
+                            )
+                        }
+
+                        Text(
+                            text = severity.shortName,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = severity.color
+                        )
+                    }
+
+                    if (index < forecasts.lastIndex) {
+                        Divider(
+                            modifier = Modifier.padding(start = 38.dp),
+                            color = TurboDivider.copy(alpha = 0.4f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
             }
         }
     }

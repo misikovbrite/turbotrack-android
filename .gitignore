@@ -3,9 +3,16 @@ build/
 local.properties
 *.jks
 *.keystore
-google-services.json
 .idea/
 *.iml
 captures/
 .externalNativeBuild/
 .cxx/
+
+# Signing
+keystore.properties
+
+# Fastlane
+fastlane/play-store-key.json
+fastlane/report.xml
+

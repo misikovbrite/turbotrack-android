@@ -60,7 +60,6 @@ import com.britetodo.turbotrack.theme.TextPrimary
 import com.britetodo.turbotrack.theme.TextSecondary
 import com.britetodo.turbotrack.theme.TurboBlue
 import com.britetodo.turbotrack.theme.TurboCard
-import com.britetodo.turbotrack.theme.TurboNavyMid
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.Circle
@@ -157,7 +156,7 @@ fun TurbulenceMapScreen(
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = TurboBlue,
                         selectedLabelColor = Color.White,
-                        containerColor = TurboNavyMid.copy(alpha = 0.9f),
+                        containerColor = Color.White.copy(alpha = 0.92f),
                         labelColor = TextSecondary
                     )
                 )
@@ -169,7 +168,7 @@ fun TurbulenceMapScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 8.dp)
-                .background(TurboNavyMid.copy(alpha = 0.95f), RoundedCornerShape(12.dp))
+                .background(Color.White.copy(alpha = 0.95f), RoundedCornerShape(12.dp))
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -214,7 +213,7 @@ fun TurbulenceMapScreen(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 64.dp, end = 8.dp)
-                .background(TurboNavyMid.copy(alpha = 0.9f), RoundedCornerShape(8.dp))
+                .background(Color.White.copy(alpha = 0.92f), RoundedCornerShape(8.dp))
         ) {
             Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = TurboBlue)
         }
@@ -225,8 +224,8 @@ fun TurbulenceMapScreen(
         ModalBottomSheet(
             onDismissRequest = { viewModel.selectPirep(null) },
             sheetState = sheetState,
-            containerColor = TurboNavyMid,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = Color.White.copy(alpha = 0.3f)) }
+            containerColor = TurboCard,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFFE5E5EA)) }
         ) {
             PIREPDetailSheet(pirep = pirep)
         }

@@ -1,0 +1,39 @@
+Turbulence Forecast gives you detailed turbulence predictions for any flight route worldwide — so you always know what to expect before you board.
+
+Whether you're a nervous flyer wanting peace of mind or an aviation professional needing accurate wind shear data, Turbulence Forecast delivers real scientific data in a clear, easy-to-understand format.
+
+━━━ ROUTE FORECAST ━━━
+Enter your departure and arrival airports and get a complete turbulence analysis for the next 3, 7, or 14 days. See severity levels by altitude from FL100 (10,000 ft) all the way up to FL390 (39,000 ft) — exactly where your aircraft will be flying.
+
+━━━ REAL SCIENCE, SIMPLE FORMAT ━━━
+Powered by Open-Meteo atmospheric data and the FAA Aviation Weather Center, our algorithm analyzes wind shear across 9 pressure levels to classify turbulence using FAA-standard severity levels:
+• Smooth — comfortable flight, no disruption
+• Light — slight bumpiness, drinks may spill
+• Moderate — significant bumps, walking is difficult
+• Severe — strong jolts, loose items become projectiles
+• Extreme — aircraft may be momentarily out of control
+
+━━━ LIVE PIREP MAP ━━━
+See real pilot reports (PIREPs) from aircraft currently in the air, plotted on an interactive map. Filter by altitude and severity. Updated every 5 minutes from FAA Aviation Weather Center.
+
+━━━ SIGMET & AIRMET OVERLAYS ━━━
+View official SIGMET (Significant Meteorological) advisories and AIRMET turbulence warnings directly on the map. These are the same alerts professional pilots use before every flight.
+
+━━━ ALTITUDE BREAKDOWN ━━━
+Every forecast includes a full flight level breakdown showing turbulence intensity at each altitude band. Understand exactly which part of your flight will be roughest — and which will be smoothest.
+
+━━━ PRE-FLIGHT REMINDERS ━━━
+Set notifications 12, 24, or 48 hours before your flight so you always have time to review the forecast. Never be caught off guard by unexpected turbulence again.
+
+━━━ FOR ANXIOUS FLYERS ━━━
+Turbulence is normal, safe, and survivable — but the unknown is what makes it scary. Knowing in advance what to expect dramatically reduces flight anxiety. Our calming tips and clear explanations help nervous flyers understand and prepare for what's ahead.
+
+━━━ DATA SOURCES ━━━
+• Open-Meteo — upper-atmosphere wind data at 200–700 hPa pressure levels
+• FAA Aviation Weather Center — live PIREPs and SIGMETs
+• Wind shear algorithm based on FAA-standard Clear Air Turbulence (CAT) detection
+
+━━━ FREE & NO ADS ━━━
+Turbulence Forecast is completely free with no advertisements. No account required. Just enter your route and fly informed.
+
+Fly with confidence. Know before you go.

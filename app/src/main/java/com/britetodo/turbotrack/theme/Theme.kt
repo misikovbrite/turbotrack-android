@@ -1,34 +1,31 @@
 package com.britetodo.turbotrack.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = TurboBlue,
-    onPrimary = Color.White,
-    primaryContainer = TurboBlueDark,
-    onPrimaryContainer = Color.White,
-    secondary = TurboBlueLight,
-    onSecondary = Color.White,
-    background = TurboNavy,
-    onBackground = TextPrimary,
-    surface = TurboNavyMid,
-    onSurface = TextPrimary,
-    surfaceVariant = TurboCard,
-    onSurfaceVariant = TextSecondary,
-    outline = Color(0xFF2A3550),
-    error = ColorError,
-    onError = Color.White
+private val LightColorScheme = lightColorScheme(
+    primary           = Color(0xFF007AFF),
+    onPrimary         = Color.White,
+    primaryContainer  = Color(0xFFD1E4FF),
+    secondary         = Color(0xFF6E6E73),
+    onSecondary       = Color.White,
+    background        = Color(0xFFF2F2F7),
+    onBackground      = Color(0xFF1C1C1E),
+    surface           = Color(0xFFFFFFFF),
+    onSurface         = Color(0xFF1C1C1E),
+    surfaceVariant    = Color(0xFFF2F2F7),
+    onSurfaceVariant  = Color(0xFF6E6E73),
+    outline           = Color(0xFFC6C6C8),
+    error             = Color(0xFFFF3B30),
+    onError           = Color.White,
 )
 
 @Composable
-fun TurboTrackTheme(
-    content: @Composable () -> Unit
-) {
+fun TurboTrackTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = DarkColorScheme,
+        colorScheme = LightColorScheme,
         typography = Typography,
         content = content
     )

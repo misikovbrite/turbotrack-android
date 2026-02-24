@@ -22,9 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.britetodo.turbotrack.theme.TurboBackground
 import com.britetodo.turbotrack.theme.TurboBlue
-import com.britetodo.turbotrack.theme.TurboNavy
-import com.britetodo.turbotrack.theme.TurboNavyMid
+import com.britetodo.turbotrack.theme.TurboCard
 import com.britetodo.turbotrack.theme.TextMuted
 import com.britetodo.turbotrack.theme.TextPrimary
 import com.britetodo.turbotrack.ui.forecast.ForecastTabScreen
@@ -49,10 +49,10 @@ fun MainScreen() {
     var selectedTab by rememberSaveable { mutableIntStateOf(1) } // Default to Forecast
 
     Scaffold(
-        containerColor = TurboNavy,
+        containerColor = TurboBackground,
         bottomBar = {
             NavigationBar(
-                containerColor = TurboNavyMid,
+                containerColor = TurboCard,
                 contentColor = TextPrimary,
                 tonalElevation = 0.dp
             ) {

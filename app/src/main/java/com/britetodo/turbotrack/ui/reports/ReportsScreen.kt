@@ -54,9 +54,8 @@ import com.britetodo.turbotrack.theme.TextMuted
 import com.britetodo.turbotrack.theme.TextPrimary
 import com.britetodo.turbotrack.theme.TextSecondary
 import com.britetodo.turbotrack.theme.TurboBlue
+import com.britetodo.turbotrack.theme.TurboBackground
 import com.britetodo.turbotrack.theme.TurboCard
-import com.britetodo.turbotrack.theme.TurboNavy
-import com.britetodo.turbotrack.theme.TurboNavyMid
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +70,7 @@ fun ReportsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(TurboNavy)
+            .background(TurboBackground)
     ) {
         // Header
         Text(
@@ -204,8 +203,8 @@ fun ReportsScreen(
         ModalBottomSheet(
             onDismissRequest = { viewModel.selectPirep(null) },
             sheetState = sheetState,
-            containerColor = TurboNavyMid,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = Color.White.copy(alpha = 0.3f)) }
+            containerColor = TurboCard,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFFE5E5EA)) }
         ) {
             PIREPFullDetail(pirep = pirep)
         }
@@ -333,5 +332,5 @@ private fun DetailRow(label: String, value: String) {
         Text(label, color = TextMuted, fontSize = 14.sp)
         Text(value, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
-    Divider(color = Color.White.copy(alpha = 0.05f), thickness = 0.5.dp)
+    Divider(color = Color(0xFFE5E5EA), thickness = 0.5.dp)
 }

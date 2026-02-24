@@ -48,9 +48,8 @@ import com.britetodo.turbotrack.theme.TextMuted
 import com.britetodo.turbotrack.theme.TextPrimary
 import com.britetodo.turbotrack.theme.TextSecondary
 import com.britetodo.turbotrack.theme.TurboBlue
+import com.britetodo.turbotrack.theme.TurboBackground
 import com.britetodo.turbotrack.theme.TurboCard
-import com.britetodo.turbotrack.theme.TurboNavy
-import com.britetodo.turbotrack.theme.TurboNavyMid
 import kotlinx.coroutines.launch
 
 @Composable
@@ -65,7 +64,7 @@ fun SettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(TurboNavy)
+            .background(TurboBackground)
             .verticalScroll(rememberScrollState())
     ) {
         Text(
@@ -118,7 +117,7 @@ fun SettingsScreen(
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = TurboBlue,
                             selectedLabelColor = Color.White,
-                            containerColor = TurboNavyMid,
+                            containerColor = Color(0xFFE5E5EA),
                             labelColor = TextSecondary
                         )
                     )
@@ -160,7 +159,7 @@ fun SettingsScreen(
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://aviationweather.gov")))
                 }
             )
-            Divider(color = Color.White.copy(alpha = 0.05f))
+            Divider(color = Color(0xFFE5E5EA))
             LinkRow(
                 icon = Icons.Default.Email,
                 title = "Contact Support",
@@ -173,7 +172,7 @@ fun SettingsScreen(
                     context.startActivity(intent)
                 }
             )
-            Divider(color = Color.White.copy(alpha = 0.05f))
+            Divider(color = Color(0xFFE5E5EA))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -248,7 +247,7 @@ private fun SwitchRow(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = TurboBlue,
                 uncheckedThumbColor = TextMuted,
-                uncheckedTrackColor = TurboNavyMid
+                uncheckedTrackColor = Color(0xFFE5E5EA)
             )
         )
     }
@@ -275,7 +274,7 @@ private fun TimingRow(
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = TurboBlue,
                     selectedLabelColor = Color.White,
-                    containerColor = TurboNavyMid,
+                    containerColor = Color(0xFFE5E5EA),
                     labelColor = TextSecondary
                 )
             )
