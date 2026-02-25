@@ -3,9 +3,12 @@
 ## Overview
 TurboTrack is an aviation turbulence forecasting app for Android.
 - **Package:** `com.britetodo.turbotrack`
+- **Play Store:** Turbulence Forecast - Flight+
+- **Current version:** 1.0.1 (versionCode 2)
 - **Min SDK:** 26 (Android 8.0)
 - **Target SDK:** 35
 - **Language:** Kotlin + Jetpack Compose + Material3
+- **GitHub:** `misikovbrite/turbotrack-android`
 
 ## Project Structure
 ```
@@ -40,7 +43,7 @@ app/src/main/java/com/britetodo/turbotrack/
 │   ├── model/
 │   │   ├── TurbulenceSeverity.kt     # NONE/LIGHT/MODERATE/SEVERE/EXTREME
 │   │   ├── TurbulenceType.kt         # CAT/CONVECTIVE/MOUNTAIN_WAVE/COMBINED
-│   │   ├── Airport.kt                # 44 airports hardcoded + search()
+│   │   ├── Airport.kt                # 250+ airports worldwide + search()
 │   │   ├── TurbulenceForecast.kt     # Forecast result models
 │   │   ├── PIREPReport.kt            # FAA PIREP JSON model
 │   │   └── AirSigmet.kt              # FAA SIGMET JSON model + coords
@@ -65,58 +68,48 @@ app/src/main/java/com/britetodo/turbotrack/
 ```bash
 cd ~/turbotrack-android
 
-# Java 17 required
-export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+# JAVA_HOME required (Android Studio JBR)
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 
 # Debug build
 ./gradlew assembleDebug
 
-# Release AAB (for Play Store)
-./gradlew bundleRelease
+# Release AAB (signed)
+./gradlew bundleRelease \
+  -Pandroid.injected.signing.store.file=$(pwd)/app/turbotrack.jks \
+  -Pandroid.injected.signing.store.password="TurboTrack2024!" \
+  -Pandroid.injected.signing.key.alias=turbotrack \
+  -Pandroid.injected.signing.key.password="TurboTrack2024!"
 
 # Output: app/build/outputs/bundle/release/app-release.aab
 ```
 
-## Required Setup Before Building
+## Keystore
+- **File:** `app/turbotrack.jks` (excluded from git)
+- **Alias:** `turbotrack`
+- **Password:** `TurboTrack2024!` (store + key)
+- **GitHub Secrets:** KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
+- **Note:** R8 minification disabled (AGP 8.5.2 bug) — re-enable after AGP upgrade in R2
 
-### 1. Google Maps API Key
-1. Go to Google Cloud Console → APIs & Services → Credentials
-2. Create API Key, restrict to Android with package `com.britetodo.turbotrack`
-3. Enable "Maps SDK for Android"
-4. Add to `local.properties`:
-   ```
-   MAPS_API_KEY=AIzaSy...
-   ```
-5. Or set in `app/build.gradle.kts` defaultConfig:
-   ```kotlin
-   manifestPlaceholders["MAPS_API_KEY"] = "YOUR_KEY_HERE"
-   ```
+## Firebase Configuration
+- **Project:** TurboTrack (same Firebase project as iOS)
+- **Android app:** `com.britetodo.turbotrack`
+- **Config file:** `app/google-services.json` (tracked in git)
+- **Services used:** Analytics, Remote Config
+- **Remote Config key:** `turbulence_close_button_delay` (default 3.0s)
 
-### 2. Firebase Configuration
-1. Go to Firebase Console → TurboTrack project
-2. Add Android app: `com.britetodo.turbotrack`
-3. Download `google-services.json`
-4. Place at: `app/google-services.json`
-
-### 3. Keystore (for release)
-```bash
-keytool -genkey -v -keystore app/turbotrack.jks \
-  -keyalg RSA -keysize 2048 -validity 10000 \
-  -alias turbotrack
-
-# Set env vars for signing:
-export KEYSTORE_PASSWORD=your_password
-export KEY_PASSWORD=your_key_password
-```
+## Google Maps
+- API Key set via `manifestPlaceholders["MAPS_API_KEY"]` in `build.gradle.kts`
+- Restrict key to package `com.britetodo.turbotrack` in Google Cloud Console
 
 ## APIs Used
 
-| API | Base URL | Docs |
-|-----|----------|------|
+| API | Base URL | Purpose |
+|-----|----------|---------|
 | FAA Aviation Weather | `https://aviationweather.gov/` | PIREPs + SIGMETs |
 | Open-Meteo | `https://api.open-meteo.com/` | Wind speed/direction, 9 pressure levels |
-| Firebase Remote Config | — | `turbulence_close_button_delay` (default 3.0s) |
-| Google Maps | — | Map display, markers, polygons |
+| Firebase Remote Config | — | `turbulence_close_button_delay` |
+| Google Maps | — | Map display, PIREP markers, SIGMET polygons |
 
 ## Wind Shear Algorithm
 Located in `TurbulenceForecastService.kt`:
@@ -128,18 +121,49 @@ Located in `TurbulenceForecastService.kt`:
 ## Deploy to Google Play
 
 ```bash
-# Upload to Play Console
+# Upload new AAB to production
 python3 ~/app-converter/play_console.py upload turbotrack \
-  app/build/outputs/bundle/release/app-release.aab
+  app/build/outputs/bundle/release/app-release.aab --track production
 
-# Or internal track for testing
+# Upload to internal track only
 python3 ~/app-converter/play_console.py upload turbotrack \
   app/build/outputs/bundle/release/app-release.aab --track internal
+
+# Update store listing
+python3 ~/app-converter/play_console.py update-listing turbotrack en-US \
+  --title "Turbulence Forecast" \
+  --short "Know turbulence before you fly..."
 ```
 
-**Note:** First publish must be done manually in Play Console web UI.
+## CI/CD — GitHub Actions
+Workflow: `.github/workflows/release.yml`
+- **Trigger:** push tag `v*` or manual dispatch
+- **Secrets required:** KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD, PLAY_STORE_JSON_KEY
+- **Output:** signed AAB uploaded to Play Store internal track
+
+Tag a release:
+```bash
+git tag v1.0.1 && git push origin v1.0.1
+```
+
+## Store Listing Assets
+Located in `fastlane/metadata/android/en-US/`:
+- `title.txt` — "Turbulence Forecast"
+- `short_description.txt`
+- `full_description.txt`
+- `images/icon/icon.png` — 512×512
+- `images/featureGraphic/feature_graphic.png` — 1024×500
+- `images/phoneScreenshots/1-6.png` — 1282×2778
+
+## Version History
+
+| versionCode | versionName | Notes |
+|-------------|-------------|-------|
+| 1 | 1.0.0 | First upload (package registration) |
+| 2 | 1.0.1 | Firebase google-services.json added |
 
 ## Release 2 (R2) — Deferred
 - Google Play Billing 8.0
 - Product ID: `turbotrack_weekly` ($2.99/week)
-- Package: already `com.britetodo.turbotrack`
+- Re-enable R8 minification after AGP upgrade
+- Add 22-language localization
