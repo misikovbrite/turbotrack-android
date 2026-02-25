@@ -159,12 +159,41 @@ Located in `fastlane/metadata/android/en-US/`:
 
 | versionCode | versionName | Notes |
 |-------------|-------------|-------|
-| 1 | 1.0.0 | First upload (package registration) |
+| 1 | 1.0.0 | First upload (package registration in Play Console) |
 | 2 | 1.0.1 | Firebase google-services.json added |
-| 3 | 1.0.2 | Remove broken Recent Forecasts dead code, fix debug package |
+| 3 | 1.0.2 | Remove broken Recent Forecasts dead code, fix debug package — uploaded via API |
+| 4 | 1.0.3 | **Current** — ready for production submission |
+
+## Current Status (2026-02-25)
+
+### Done ✅
+- Full app built and compiling (Kotlin + Jetpack Compose)
+- iOS icon converted → Android adaptive icon (all densities)
+- iOS App Store screenshots (6×) → Google Play metadata
+- Feature graphic generated (1024×500)
+- Firebase connected (`google-services.json` in repo)
+- Keystore created (`app/turbotrack.jks`), GitHub Secrets set
+- GitHub Actions CI workflow (`.github/workflows/release.yml`)
+- Store listing uploaded via API: title, description, icon, feature graphic, 6 screenshots
+- AAB v1.0.3 (build 4) built and ready
+
+### In Progress / Needs Manual Steps ⏳
+- Play Console app still in **draft** status — must complete these to publish:
+  1. **App content → Content rating** — complete questionnaire
+  2. **App content → Target audience** — select 18+
+  3. **App content → Data safety** — fill in (no personal data collected)
+  4. **Store listing → Category** — Travel
+  5. **Store listing → Contact email** — hello@britetodo.com
+  6. **Production release** — upload AAB v1.0.3 (versionCode=4) and submit for review
+
+### Play Console Info
+- **Package:** `com.britetodo.turbotrack`
+- **App name in console:** Turbulence Forecast - Flight+
+- **Service account:** `play-console-api-access@brite-ads-automation.iam.gserviceaccount.com`
+- **API key:** `~/Downloads/brite-ads-automation-33f3693602ca.json`
 
 ## Release 2 (R2) — Deferred
 - Google Play Billing 8.0
 - Product ID: `turbotrack_weekly` ($2.99/week)
-- Re-enable R8 minification after AGP upgrade
+- Re-enable R8 minification after AGP upgrade to 8.7+
 - Add 22-language localization
