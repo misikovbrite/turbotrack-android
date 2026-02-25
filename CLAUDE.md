@@ -161,6 +161,7 @@ Located in `fastlane/metadata/android/en-US/`:
 |-------------|-------------|-------|
 | 1 | 1.0.0 | First upload (package registration) |
 | 2 | 1.0.1 | Firebase google-services.json added |
+| 3 | 1.0.2 | Remove broken Recent Forecasts dead code, fix debug package |
 
 ## Release 2 (R2) — Deferred
 - Google Play Billing 8.0

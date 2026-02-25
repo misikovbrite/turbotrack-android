@@ -191,14 +191,6 @@ fun RouteInputScreen(viewModel: RouteViewModel) {
                 }
             }
 
-            // ── Recent Forecasts section ────────────────────────────────────
-            // Placeholder: once the ViewModel exposes a recentForecasts list
-            // this section renders. Currently stubbed with empty list guard.
-            val recentForecasts = emptyList<Pair<Pair<Airport, Airport>, TurbulenceSeverity>>()
-            if (recentForecasts.isNotEmpty()) {
-                RecentForecastsSection(recentForecasts)
-            }
-
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -627,82 +619,3 @@ private fun ForecastPeriodCard(forecastDays: Int, onSelect: (Int) -> Unit) {
     }
 }
 
-// ── Recent Forecasts Section ─────────────────────────────────────────────────
-
-@Composable
-private fun RecentForecastsSection(
-    forecasts: List<Pair<Pair<Airport, Airport>, TurbulenceSeverity>>
-) {
-    val cardShape = RoundedCornerShape(20.dp)
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Recent Forecasts",
-            fontSize = 17.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = TextPrimary,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(elevation = 2.dp, shape = cardShape, clip = false),
-            shape = cardShape,
-            colors = CardDefaults.cardColors(containerColor = TurboCard),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            Column {
-                forecasts.forEachIndexed { index, (route, severity) ->
-                    val (origin, destination) = route
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Severity dot
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(severity.color)
-                        )
-
-                        Spacer(Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "${origin.iata} → ${destination.iata}",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "${origin.city} to ${destination.city}",
-                                fontSize = 13.sp,
-                                color = TextSecondary
-                            )
-                        }
-
-                        Text(
-                            text = severity.shortName,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = severity.color
-                        )
-                    }
-
-                    if (index < forecasts.lastIndex) {
-                        Divider(
-                            modifier = Modifier.padding(start = 38.dp),
-                            color = TurboDivider.copy(alpha = 0.4f),
-                            thickness = 0.5.dp
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
