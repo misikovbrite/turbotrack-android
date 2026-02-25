@@ -177,14 +177,10 @@ Located in `fastlane/metadata/android/en-US/`:
 - Store listing uploaded via API: title, description, icon, feature graphic, 6 screenshots
 - AAB v1.0.3 (build 4) built and ready
 
-### In Progress / Needs Manual Steps ⏳
-- Play Console app still in **draft** status — must complete these to publish:
-  1. **App content → Content rating** — complete questionnaire
-  2. **App content → Target audience** — select 18+
-  3. **App content → Data safety** — fill in (no personal data collected)
-  4. **Store listing → Category** — Travel
-  5. **Store listing → Contact email** — hello@britetodo.com
-  6. **Production release** — upload AAB v1.0.3 (versionCode=4) and submit for review
+### Submitted for Review ✅ (2026-02-25)
+- AAB v1.0.3 (versionCode=4) submitted to Google Play production
+- **Status: Waiting for Google review**
+- Expected review time: 1–3 days
 
 ### Play Console Info
 - **Package:** `com.britetodo.turbotrack`
