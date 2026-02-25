@@ -16,3 +16,4 @@ keystore.properties
 fastlane/play-store-key.json
 fastlane/report.xml
 
+.kotlin/
