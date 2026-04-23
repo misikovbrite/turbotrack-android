@@ -26,15 +26,20 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val isPremium: StateFlow<Boolean> = billingService.isPremium
+    val hasSuperPro: StateFlow<Boolean> = billingService.hasSuperPro
+    val showUpsell: StateFlow<Boolean> = billingService.showUpsell
+    val products: StateFlow<Map<String, ProductDetails>> = billingService.products
 
-    val productDetails: StateFlow<ProductDetails?> = billingService.productDetails
-
-    fun subscribe(activity: Activity) {
-        billingService.launchPurchaseFlow(activity)
+    fun subscribe(activity: Activity, productId: String) {
+        billingService.launchPurchaseFlow(activity, productId)
     }
 
     fun restorePurchases() {
         billingService.queryExistingPurchases()
+    }
+
+    fun dismissUpsell() {
+        billingService.dismissUpsell()
     }
 
     fun setNotificationsEnabled(enabled: Boolean) = viewModelScope.launch {

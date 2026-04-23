@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
@@ -36,6 +37,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.android.billingclient.api.ProductDetails
+import com.britetodo.turbotrack.services.BillingService
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -65,7 +68,9 @@ fun SettingsScreen(
 ) {
     val prefs by viewModel.prefs.collectAsState()
     val isPremium by viewModel.isPremium.collectAsState()
-    val productDetails by viewModel.productDetails.collectAsState()
+    val hasSuperPro by viewModel.hasSuperPro.collectAsState()
+    val showUpsell by viewModel.showUpsell.collectAsState()
+    val products by viewModel.products.collectAsState()
     val context = LocalContext.current
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
@@ -95,8 +100,31 @@ fun SettingsScreen(
                 ) {
                     Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFCC00), modifier = Modifier.size(22.dp))
                     Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text("Premium Active", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (hasSuperPro) "Super Pro Active" else "Premium Active",
+                            color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold
+                        )
                         Text("Unlimited forecasts & features", color = TextMuted, fontSize = 12.sp)
+                    }
+                }
+                // Upsell Super Pro if premium but not super pro yet
+                if (!hasSuperPro) {
+                    Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
+                        val superProDetails = products[BillingService.PRODUCT_SUPER_PRO]
+                        val superProPrice = superProDetails?.subscriptionOfferDetails
+                            ?.firstOrNull()?.pricingPhases?.pricingPhaseList
+                            ?.lastOrNull()?.formattedPrice
+                        Button(
+                            onClick = { activity?.let { viewModel.subscribe(it, BillingService.PRODUCT_SUPER_PRO) } },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFCC00))
+                        ) {
+                            Text(
+                                if (superProPrice != null) "Upgrade to Super Pro — $superProPrice/mo" else "Upgrade to Super Pro",
+                                color = Color.Black, fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             } else {
@@ -105,24 +133,40 @@ fun SettingsScreen(
                         Icon(Icons.Default.Star, contentDescription = null, tint = TurboBlue, modifier = Modifier.size(22.dp))
                         Column(modifier = Modifier.padding(start = 12.dp)) {
                             Text("Upgrade to Premium", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                            val price = productDetails?.subscriptionOfferDetails
-                                ?.firstOrNull()?.pricingPhases?.pricingPhaseList
-                                ?.lastOrNull()?.formattedPrice
-                            Text(
-                                text = if (price != null) "$price / week" else "Unlimited forecasts & features",
-                                color = TextMuted,
-                                fontSize = 12.sp
-                            )
+                            Text("Unlimited forecasts & real-time data", color = TextMuted, fontSize = 12.sp)
                         }
                     }
                     Spacer(Modifier.height(10.dp))
+                    // Weekly button
+                    val weeklyPrice = products[BillingService.PRODUCT_WEEKLY]
+                        ?.subscriptionOfferDetails?.firstOrNull()
+                        ?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice
                     Button(
-                        onClick = { activity?.let { viewModel.subscribe(it) } },
+                        onClick = { activity?.let { viewModel.subscribe(it, BillingService.PRODUCT_WEEKLY) } },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = TurboBlue)
                     ) {
-                        Text("Subscribe", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (weeklyPrice != null) "$weeklyPrice / week" else "Weekly",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    // Yearly button
+                    val yearlyPrice = products[BillingService.PRODUCT_YEARLY]
+                        ?.subscriptionOfferDetails?.firstOrNull()
+                        ?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice
+                    Button(
+                        onClick = { activity?.let { viewModel.subscribe(it, BillingService.PRODUCT_YEARLY) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34C759))
+                    ) {
+                        Text(
+                            if (yearlyPrice != null) "$yearlyPrice / year" else "Yearly",
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                     TextButton(
                         onClick = { viewModel.restorePurchases() },
@@ -132,6 +176,15 @@ fun SettingsScreen(
                     }
                 }
             }
+        }
+
+        // ── Upsell dialog (Super Pro) ──────────────────────────────────────────
+        if (showUpsell) {
+            SuperProUpsellDialog(
+                products = products,
+                onSubscribe = { activity?.let { viewModel.subscribe(it, BillingService.PRODUCT_SUPER_PRO) } },
+                onDismiss = { viewModel.dismissUpsell() }
+            )
         }
 
         Spacer(Modifier.height(16.dp))
@@ -364,4 +417,43 @@ private fun LinkRow(
         }
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted)
     }
+}
+
+@Composable
+private fun SuperProUpsellDialog(
+    products: Map<String, ProductDetails>,
+    onSubscribe: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val price = products[BillingService.PRODUCT_SUPER_PRO]
+        ?.subscriptionOfferDetails?.firstOrNull()
+        ?.pricingPhases?.pricingPhaseList?.lastOrNull()?.formattedPrice
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFCC00), modifier = Modifier.size(36.dp))
+        },
+        title = { Text("Upgrade to Super Pro", fontWeight = FontWeight.Bold) },
+        text = {
+            Text(
+                "Get exclusive features: priority forecasts, advanced turbulence analytics, and early access to new features." +
+                        if (price != null) "\n\n$price / month" else "",
+                color = TextSecondary
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onSubscribe,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFCC00))
+            ) {
+                Text("Upgrade", color = Color.Black, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Maybe Later", color = TextMuted)
+            }
+        }
+    )
 }
