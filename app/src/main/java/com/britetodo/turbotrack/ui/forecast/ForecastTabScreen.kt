@@ -103,6 +103,11 @@ fun ForecastTabScreen(
                     ForecastScreen.Analysis -> ForecastAnalysisScreen(viewModel = viewModel)
                     ForecastScreen.Story -> ForecastStoryScreen(viewModel = viewModel)
                     ForecastScreen.Result -> ForecastResultScreen(viewModel = viewModel)
+                    ForecastScreen.LimitReached -> ForecastLimitScreen(
+                        viewModel = viewModel,
+                        settingsViewModel = settingsViewModel,
+                        onDismiss = { viewModel.navigateToInput() }
+                    )
                 }
             }
 

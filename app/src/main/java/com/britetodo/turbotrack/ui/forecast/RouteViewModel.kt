@@ -9,7 +9,9 @@ import com.britetodo.turbotrack.data.model.TurbulenceSeverity
 import com.britetodo.turbotrack.data.preferences.ForecastHistoryRepository
 import com.britetodo.turbotrack.data.preferences.HistoryEntry
 import com.britetodo.turbotrack.services.AnalyticsService
+import com.britetodo.turbotrack.services.BillingService
 import com.britetodo.turbotrack.services.FlightNumberService
+import com.britetodo.turbotrack.services.ForecastLimitService
 import com.britetodo.turbotrack.services.TurbulenceForecastService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +27,7 @@ import javax.inject.Inject
 // Enums
 // ---------------------------------------------------------------------------
 
-enum class ForecastScreen { Input, Analysis, Story, Result }
+enum class ForecastScreen { Input, Analysis, Story, Result, LimitReached }
 
 enum class RouteMode { DIRECT, CONNECTING }
 
@@ -102,7 +104,9 @@ class RouteViewModel @Inject constructor(
     private val forecastService: TurbulenceForecastService,
     private val analytics: AnalyticsService,
     private val flightNumberService: FlightNumberService,
-    private val historyRepository: ForecastHistoryRepository
+    private val historyRepository: ForecastHistoryRepository,
+    private val forecastLimitService: ForecastLimitService,
+    private val billingService: BillingService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RouteUiState())
@@ -415,6 +419,12 @@ class RouteViewModel @Inject constructor(
     fun checkTurbulence() {
         val origin = _state.value.origin ?: return
         val destination = _state.value.destination ?: return
+
+        if (!billingService.isPremium.value && !forecastLimitService.canCheck()) {
+            _state.value = _state.value.copy(currentScreen = ForecastScreen.LimitReached)
+            return
+        }
+        forecastLimitService.recordCheck()
 
         _state.value = _state.value.copy(
             currentScreen = ForecastScreen.Analysis,

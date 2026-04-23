@@ -36,7 +36,7 @@ class AnalyticsService @Inject constructor(
         analytics.logEvent(FirebaseAnalytics.Event.SHARE, params)
     }
 
-    fun logPurchase(productId: String, price: Double, currency: String = "USD") {
+    fun logPurchase(productId: String, price: Double, transactionId: String = "", currency: String = "USD") {
         val item = Bundle().apply {
             putString(FirebaseAnalytics.Param.ITEM_ID, productId)
             putString(FirebaseAnalytics.Param.ITEM_NAME, productId)
@@ -46,7 +46,50 @@ class AnalyticsService @Inject constructor(
             putDouble(FirebaseAnalytics.Param.VALUE, price)
             putString(FirebaseAnalytics.Param.CURRENCY, currency)
             putParcelableArray(FirebaseAnalytics.Param.ITEMS, arrayOf(item))
+            if (transactionId.isNotEmpty()) {
+                putString(FirebaseAnalytics.Param.TRANSACTION_ID, transactionId)
+            }
         }
+        analytics.logEvent(FirebaseAnalytics.Event.PURCHASE, params)
+    }
+
+    // Fired when user starts a free trial — no revenue yet, value = 0.
+    // In Google Ads: use as micro-conversion or secondary goal.
+    fun logTrialStarted(productId: String, transactionId: String = "", currency: String = "USD") {
+        val item = Bundle().apply {
+            putString(FirebaseAnalytics.Param.ITEM_ID, productId)
+            putString(FirebaseAnalytics.Param.ITEM_NAME, productId)
+            putString(FirebaseAnalytics.Param.ITEM_CATEGORY, "subscription")
+        }
+        val params = Bundle().apply {
+            putDouble(FirebaseAnalytics.Param.VALUE, 0.0)
+            putString(FirebaseAnalytics.Param.CURRENCY, currency)
+            putParcelableArray(FirebaseAnalytics.Param.ITEMS, arrayOf(item))
+            if (transactionId.isNotEmpty()) {
+                putString(FirebaseAnalytics.Param.TRANSACTION_ID, transactionId)
+            }
+        }
+        analytics.logEvent("trial_started", params)
+    }
+
+    // Fired when trial converts to paid (detected on next app open after trial period).
+    // Set as primary conversion in Google Ads with the subscription value.
+    fun logSubscriptionConverted(productId: String, price: Double, transactionId: String = "", currency: String = "USD") {
+        val item = Bundle().apply {
+            putString(FirebaseAnalytics.Param.ITEM_ID, productId)
+            putString(FirebaseAnalytics.Param.ITEM_NAME, productId)
+            putString(FirebaseAnalytics.Param.ITEM_CATEGORY, "subscription")
+        }
+        val params = Bundle().apply {
+            putDouble(FirebaseAnalytics.Param.VALUE, price)
+            putString(FirebaseAnalytics.Param.CURRENCY, currency)
+            putParcelableArray(FirebaseAnalytics.Param.ITEMS, arrayOf(item))
+            if (transactionId.isNotEmpty()) {
+                putString(FirebaseAnalytics.Param.TRANSACTION_ID, transactionId)
+            }
+        }
+        // Log both as named event (for segmentation) and as standard PURCHASE (for GA4/Ads import)
+        analytics.logEvent("subscription_converted", params)
         analytics.logEvent(FirebaseAnalytics.Event.PURCHASE, params)
     }
 

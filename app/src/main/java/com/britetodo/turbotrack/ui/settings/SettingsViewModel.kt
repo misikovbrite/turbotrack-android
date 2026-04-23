@@ -9,6 +9,7 @@ import com.britetodo.turbotrack.data.preferences.UserPreferencesRepository
 import com.britetodo.turbotrack.services.AnalyticsService
 import com.britetodo.turbotrack.services.BillingService
 import com.britetodo.turbotrack.services.NotificationService
+import com.britetodo.turbotrack.services.RemoteConfigService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +22,12 @@ class SettingsViewModel @Inject constructor(
     private val prefsRepo: UserPreferencesRepository,
     private val notificationService: NotificationService,
     private val billingService: BillingService,
-    val analytics: AnalyticsService
+    val analytics: AnalyticsService,
+    private val remoteConfigService: RemoteConfigService
 ) : ViewModel() {
+
+    val closeButtonDelayMs: Long
+        get() = (remoteConfigService.closeButtonDelay * 1000).toLong()
 
     val prefs: StateFlow<UserPreferences?> = prefsRepo.userPreferences
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)

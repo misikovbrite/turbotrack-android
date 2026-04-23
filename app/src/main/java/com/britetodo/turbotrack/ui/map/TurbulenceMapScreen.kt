@@ -2,6 +2,9 @@ package com.britetodo.turbotrack.ui.map
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Paint
+import android.graphics.drawable.ShapeDrawable
+import android.graphics.drawable.shapes.OvalShape
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -35,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -44,12 +48,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.britetodo.turbotrack.data.model.PIREPReport
 import com.britetodo.turbotrack.theme.SeverityExtreme
 import com.britetodo.turbotrack.theme.SeverityLight
@@ -60,94 +69,171 @@ import com.britetodo.turbotrack.theme.TextPrimary
 import com.britetodo.turbotrack.theme.TextSecondary
 import com.britetodo.turbotrack.theme.TurboBlue
 import com.britetodo.turbotrack.theme.TurboCard
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.Circle
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Polygon
-import com.google.maps.android.compose.rememberCameraPositionState
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.util.MapTileIndex
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polygon
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import kotlin.math.cos
+import kotlin.math.sin
+
+// CartoDB Dark Matter tile source — free, no key required
+private val CARTO_DARK = object : OnlineTileSourceBase(
+    "CartoDark", 0, 19, 256, ".png",
+    arrayOf(
+        "https://a.basemaps.cartocdn.com/dark_all/",
+        "https://b.basemaps.cartocdn.com/dark_all/",
+        "https://c.basemaps.cartocdn.com/dark_all/"
+    )
+) {
+    override fun getTileURLString(pMapTileIndex: Long): String =
+        baseUrl +
+            MapTileIndex.getZoom(pMapTileIndex) + "/" +
+            MapTileIndex.getX(pMapTileIndex) + "/" +
+            MapTileIndex.getY(pMapTileIndex) +
+            mImageFilenameEnding
+}
+
+private fun circlePoints(center: GeoPoint, radiusMeters: Double, n: Int = 32): ArrayList<GeoPoint> {
+    val pts = ArrayList<GeoPoint>(n)
+    val latRad = Math.toRadians(center.latitude)
+    for (i in 0 until n) {
+        val angle = Math.toRadians(i * 360.0 / n)
+        val dLat = (radiusMeters / 111_320.0) * cos(angle)
+        val dLon = (radiusMeters / (111_320.0 * cos(latRad))) * sin(angle)
+        pts.add(GeoPoint(center.latitude + dLat, center.longitude + dLon))
+    }
+    return pts
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TurbulenceMapScreen(
     modifier: Modifier = Modifier,
     viewModel: MapViewModel = hiltViewModel(),
-    settingsViewModel: com.britetodo.turbotrack.ui.settings.SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    settingsViewModel: com.britetodo.turbotrack.ui.settings.SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val isPremium by settingsViewModel.isPremium.collectAsState()
     val hasSuperPro by settingsViewModel.hasSuperPro.collectAsState()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val sheetState = rememberModalBottomSheetState()
 
     var locationGranted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                    == PackageManager.PERMISSION_GRANTED
+                == PackageManager.PERMISSION_GRANTED
         )
     }
-
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
+    val locationPermLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted -> locationGranted = granted }
 
     LaunchedEffect(Unit) {
-        if (!locationGranted) locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        Configuration.getInstance().userAgentValue = context.packageName
+        if (!locationGranted) locationPermLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(37.0, -95.0), 4f)
+    val mapView = remember {
+        MapView(context).apply {
+            setTileSource(CARTO_DARK)
+            setMultiTouchControls(true)
+            controller.setZoom(4.5)
+            controller.setCenter(GeoPoint(37.0, -95.0))
+            isTilesScaledToDpi = true
+        }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        // Map
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(
-                isMyLocationEnabled = locationGranted,
-                mapType = com.google.maps.android.compose.MapType.NORMAL
-            ),
-            uiSettings = MapUiSettings(
-                myLocationButtonEnabled = locationGranted,
-                zoomControlsEnabled = false
-            )
-        ) {
-            // PIREP markers
-            viewModel.filteredPireps().forEach { pirep ->
-                val lat = pirep.lat ?: return@forEach
-                val lon = pirep.lon ?: return@forEach
-                Circle(
-                    center = LatLng(lat, lon),
-                    radius = 30_000.0,
-                    fillColor = pirep.severity.color.copy(alpha = 0.35f),
-                    strokeColor = pirep.severity.color.copy(alpha = 0.8f),
-                    strokeWidth = 2f,
-                    onClick = { viewModel.selectPirep(pirep) }
-                )
-            }
-
-            // SIGMET polygons
-            state.sigmets.forEach { sigmet ->
-                val coords = sigmet.coords ?: return@forEach
-                if (coords.size >= 3) {
-                    Polygon(
-                        points = coords.map { LatLng(it.lat, it.lon) },
-                        fillColor = Color(0xFFFF6B00).copy(alpha = 0.25f),
-                        strokeColor = Color(0xFFFF6B00).copy(alpha = 0.7f),
-                        strokeWidth = 2f
-                    )
-                }
+    // Pause/resume map with lifecycle
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_PAUSE  -> mapView.onPause()
+                else -> {}
             }
         }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
-        // Altitude filter row
+    val filteredPireps = viewModel.filteredPireps()
+
+    Box(modifier = modifier.fillMaxSize()) {
+
+        AndroidView(
+            factory = { mapView },
+            modifier = Modifier.fillMaxSize(),
+            update = { mv ->
+                mv.overlays.clear()
+
+                // My location overlay
+                if (locationGranted) {
+                    val myLocation = MyLocationNewOverlay(GpsMyLocationProvider(context), mv)
+                    myLocation.enableMyLocation()
+                    mv.overlays.add(myLocation)
+                }
+
+                // SIGMET polygons
+                state.sigmets.forEach { sigmet ->
+                    val coords = sigmet.coords ?: return@forEach
+                    if (coords.size < 3) return@forEach
+                    val poly = Polygon(mv).apply {
+                        points = coords.map { GeoPoint(it.lat, it.lon) }
+                        fillPaint.color = android.graphics.Color.argb(60, 255, 107, 0)
+                        outlinePaint.color = android.graphics.Color.argb(180, 255, 107, 0)
+                        outlinePaint.strokeWidth = 3f
+                    }
+                    mv.overlays.add(poly)
+                }
+
+                // PIREP circles
+                filteredPireps.forEach { pirep ->
+                    val lat = pirep.lat ?: return@forEach
+                    val lon = pirep.lon ?: return@forEach
+                    val center = GeoPoint(lat, lon)
+                    val color = pirep.severity.color
+                    val androidColor = color.toArgb()
+                    val fillAlpha = (0.35f * 255).toInt()
+                    val strokeAlpha = (0.85f * 255).toInt()
+
+                    val circle = Polygon(mv).apply {
+                        points = circlePoints(center, 30_000.0)
+                        fillPaint.color = android.graphics.Color.argb(
+                            fillAlpha,
+                            android.graphics.Color.red(androidColor),
+                            android.graphics.Color.green(androidColor),
+                            android.graphics.Color.blue(androidColor)
+                        )
+                        outlinePaint.color = android.graphics.Color.argb(
+                            strokeAlpha,
+                            android.graphics.Color.red(androidColor),
+                            android.graphics.Color.green(androidColor),
+                            android.graphics.Color.blue(androidColor)
+                        )
+                        outlinePaint.strokeWidth = 2f
+                        setOnClickListener { _, _, _ ->
+                            viewModel.selectPirep(pirep)
+                            true
+                        }
+                    }
+                    mv.overlays.add(circle)
+                }
+
+                mv.invalidate()
+            }
+        )
+
+        // Altitude filter chips
         LazyRow(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 16.dp),
+                .padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
@@ -177,10 +263,10 @@ fun TurbulenceMapScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             listOf(
-                Pair("Light", SeverityLight),
-                Pair("Moderate", SeverityModerate),
-                Pair("Severe", SeveritySevere),
-                Pair("Extreme", SeverityExtreme)
+                "Light" to SeverityLight,
+                "Moderate" to SeverityModerate,
+                "Severe" to SeveritySevere,
+                "Extreme" to SeverityExtreme
             ).forEach { (label, color) ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(10.dp).background(color, RoundedCornerShape(3.dp)))
@@ -190,14 +276,14 @@ fun TurbulenceMapScreen(
             }
         }
 
-        // Loading indicator
+        // Loading
         if (state.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = TurboBlue)
             }
         }
 
-        // Error snackbar
+        // Error
         state.error?.let { error ->
             Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp)) {
                 Snackbar(
@@ -215,7 +301,7 @@ fun TurbulenceMapScreen(
             onClick = { viewModel.loadData() },
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 64.dp, end = 8.dp)
+                .padding(top = 60.dp, end = 8.dp)
                 .background(Color.White.copy(alpha = 0.92f), RoundedCornerShape(8.dp))
         ) {
             Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = TurboBlue)
@@ -236,7 +322,7 @@ fun TurbulenceMapScreen(
         }
     }
 
-    // PIREP Bottom Sheet
+    // PIREP bottom sheet
     state.selectedPirep?.let { pirep ->
         ModalBottomSheet(
             onDismissRequest = { viewModel.selectPirep(null) },

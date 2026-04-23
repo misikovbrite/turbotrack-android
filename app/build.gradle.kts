@@ -15,12 +15,11 @@ android {
         applicationId = "com.britetodo.turbotrack"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.2.0"
+        versionCode = 7
+        versionName = "1.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        manifestPlaceholders["MAPS_API_KEY"] = project.findProperty("MAPS_API_KEY") ?: ""
     }
 
     signingConfigs {
@@ -94,9 +93,8 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
-    // Maps
-    implementation(libs.maps.compose)
-    implementation(libs.play.services.maps)
+    // Maps (OSMDroid - free OpenStreetMap)
+    implementation(libs.osmdroid)
     implementation(libs.play.services.location)
 
     // Firebase
@@ -114,6 +112,9 @@ dependencies {
 
     // Billing
     implementation(libs.billing)
+
+    // In-App Review
+    implementation(libs.play.review)
 
     // Image loading
     implementation(libs.coil.compose)

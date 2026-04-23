@@ -33,6 +33,6 @@ class RemoteConfigService @Inject constructor() {
         get() = remoteConfig.getDouble(KEY_CLOSE_BUTTON_DELAY)
 
     companion object {
-        const val KEY_CLOSE_BUTTON_DELAY = "turbulence_close_button_delay"
+        const val KEY_CLOSE_BUTTON_DELAY = "turbulence_close_button_delay_android"
     }
 }

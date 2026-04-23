@@ -119,14 +119,23 @@ class BillingService @Inject constructor(
 
                 updatePremiumState(isPremiumActive)
                 updateSuperProState(isSuperProActive)
-                activePurchases.forEach { acknowledgePurchaseIfNeeded(it) }
+                activePurchases.forEach {
+                    acknowledgePurchaseIfNeeded(it)
+                    checkTrialConversion(it)
+                }
             }
         }
     }
 
     fun launchPurchaseFlow(activity: Activity, productId: String) {
         val details = _products.value[productId] ?: return
-        val offerToken = details.subscriptionOfferDetails?.firstOrNull()?.offerToken ?: return
+        // Prefer offer with a free trial phase; fall back to first available offer
+        val offerToken = details.subscriptionOfferDetails
+            ?.firstOrNull { offer ->
+                offer.pricingPhases.pricingPhaseList.any { it.priceAmountMicros == 0L }
+            }?.offerToken
+            ?: details.subscriptionOfferDetails?.firstOrNull()?.offerToken
+            ?: return
 
         analytics.logPurchaseStarted(productId)
 
@@ -181,11 +190,19 @@ class BillingService @Inject constructor(
 
         val purchasedIds = purchase.products
         val wasPremium = _isPremium.value
+        val token = purchase.purchaseToken
 
         if (purchasedIds.any { it in PREMIUM_PRODUCT_IDS }) {
             updatePremiumState(true)
-            val price = purchasedIds.firstOrNull()?.let { productPriceUsd(it) } ?: 0.0
-            analytics.logPurchase(purchasedIds.first(), price)
+            val productId = purchasedIds.first()
+
+            // Trial start → value=0; direct paid → full price
+            if (productHasTrial(productId)) {
+                analytics.logTrialStarted(productId, token)
+                saveTrialRecord(token, productId)
+            } else {
+                analytics.logPurchase(productId, productPriceUsd(productId), token)
+            }
 
             // Show upsell if just became premium and not already super pro
             if (!wasPremium && !_hasSuperPro.value && !prefs.getBoolean(KEY_UPSELL_SHOWN, false)) {
@@ -199,10 +216,50 @@ class BillingService @Inject constructor(
 
         if (purchasedIds.any { it == PRODUCT_SUPER_PRO }) {
             updateSuperProState(true)
-            analytics.logPurchase(PRODUCT_SUPER_PRO, PRICE_SUPER_PRO)
+            analytics.logPurchase(PRODUCT_SUPER_PRO, PRICE_SUPER_PRO, token)
         }
 
         acknowledgePurchaseIfNeeded(purchase)
+    }
+
+    // Returns true if the product's first pricing phase is a free trial ($0).
+    private fun productHasTrial(productId: String): Boolean =
+        _products.value[productId]?.subscriptionOfferDetails?.any { offer ->
+            offer.pricingPhases.pricingPhaseList.any { it.priceAmountMicros == 0L }
+        } == true
+
+    // Saves trial start metadata so we can detect conversion on subsequent app opens.
+    private fun saveTrialRecord(token: String, productId: String) {
+        prefs.edit()
+            .putString("${KEY_TRIAL_TOKEN}_$productId", token)
+            .putLong("${KEY_TRIAL_START}_$productId", System.currentTimeMillis())
+            .apply()
+    }
+
+    // Called on every queryExistingPurchases(). Fires subscription_converted when
+    // the saved trial period has elapsed and the subscription is still active.
+    private fun checkTrialConversion(purchase: Purchase) {
+        val productId = purchase.products.firstOrNull() ?: return
+        val savedToken = prefs.getString("${KEY_TRIAL_TOKEN}_$productId", null) ?: return
+        if (savedToken != purchase.purchaseToken) return
+
+        val startTime = prefs.getLong("${KEY_TRIAL_START}_$productId", 0L)
+        val trialMs = trialDurationDays(productId) * 24 * 60 * 60 * 1000L
+        if (System.currentTimeMillis() - startTime < trialMs) return
+
+        // Trial period has elapsed — user is now a paying subscriber
+        analytics.logSubscriptionConverted(productId, productPriceUsd(productId), purchase.purchaseToken)
+
+        // Remove record so this fires exactly once per trial
+        prefs.edit()
+            .remove("${KEY_TRIAL_TOKEN}_$productId")
+            .remove("${KEY_TRIAL_START}_$productId")
+            .apply()
+    }
+
+    private fun trialDurationDays(productId: String): Long = when (productId) {
+        PRODUCT_WEEKLY -> 3L
+        else -> 0L
     }
 
     private fun updatePremiumState(active: Boolean) {
@@ -247,6 +304,8 @@ class BillingService @Inject constructor(
         private const val KEY_PREMIUM      = "is_premium"
         private const val KEY_SUPER_PRO    = "has_super_pro"
         private const val KEY_UPSELL_SHOWN = "upsell_shown"
+        private const val KEY_TRIAL_TOKEN  = "trial_token"
+        private const val KEY_TRIAL_START  = "trial_start"
     }
 
     fun debugSetPremium(active: Boolean) {

@@ -25,6 +25,10 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.EventSeat
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.ModeComment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.IosShare
@@ -188,7 +192,10 @@ fun ForecastResultScreen(viewModel: RouteViewModel) {
                 )
             }
 
-            // 5. Daily forecast (only if non-empty)
+            // 5. Seat recommendation
+            item { SeatRecommendationSection(severity = viewModel.forecastSeverity) }
+
+            // 6. Daily forecast (only if non-empty)
             if (dailyList.isNotEmpty()) {
                 item { DailyForecastSection(days = dailyList) }
             }
@@ -198,13 +205,16 @@ fun ForecastResultScreen(viewModel: RouteViewModel) {
                 item { FlightLevelSection(entries = flLevels) }
             }
 
-            // 7. PIREPs
+            // 8. PIREPs
             item { PirepSection(summary = pirepText) }
 
-            // 8. Turbulence guide
+            // 9. Turbulence guide
             item { TurbulenceGuideSection() }
 
-            // 9. Share button
+            // 10. What To Do
+            item { WhatToDoSection(severity = viewModel.forecastSeverity) }
+
+            // 11. Share button
             item {
                 Button(
                     onClick = {
@@ -243,7 +253,7 @@ fun ForecastResultScreen(viewModel: RouteViewModel) {
                 }
             }
 
-            // 10. Disclaimer
+            // 12. Disclaimer
             item {
                 Text(
                     text = "Turbulence forecasts are based on atmospheric models and pilot reports. " +
@@ -785,6 +795,222 @@ private fun SectionCard(content: @Composable () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             content()
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Seat Recommendation
+// ─────────────────────────────────────────────────────────────────────────────
+
+private enum class SeatZone { ANY, WING }
+
+private data class SeatRec(
+    val bestZone: SeatZone,
+    val explanation: String,
+    val wingColor: Color,
+    val frontColor: Color,
+    val rearColor: Color
+)
+
+private fun seatRecFor(severity: TurbulenceSeverity): SeatRec = when (severity) {
+    TurbulenceSeverity.NONE, TurbulenceSeverity.LIGHT -> SeatRec(
+        bestZone = SeatZone.ANY,
+        explanation = "Light conditions — any seat will be comfortable",
+        wingColor = Color(0xFF34C759),
+        frontColor = Color(0xFF34C759),
+        rearColor = Color(0xFF34C759)
+    )
+    TurbulenceSeverity.MODERATE -> SeatRec(
+        bestZone = SeatZone.WING,
+        explanation = "Sit over the wing (middle rows) — it's the plane's center of gravity and feels the least motion",
+        wingColor = Color(0xFF34C759),
+        frontColor = Color(0xFFFF9500),
+        rearColor = Color(0xFFFF9500)
+    )
+    TurbulenceSeverity.SEVERE, TurbulenceSeverity.EXTREME -> SeatRec(
+        bestZone = SeatZone.WING,
+        explanation = "Over the wing strongly recommended — rear seats can feel up to 2× more turbulence than the middle",
+        wingColor = Color(0xFF34C759),
+        frontColor = Color(0xFFFF3B30),
+        rearColor = Color(0xFFFF3B30)
+    )
+}
+
+@Composable
+private fun SeatRecommendationSection(severity: TurbulenceSeverity) {
+    val rec = seatRecFor(severity)
+    SectionCard {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.EventSeat,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "Best Seat for This Flight",
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp
+            )
+        }
+
+        // Plane zone diagram
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            // Front zone
+            Box(
+                modifier = Modifier
+                    .weight(0.28f)
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp))
+                    .background(rec.frontColor.copy(alpha = 0.25f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Front", color = rec.frontColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            }
+            // Wing zone (highlighted if best)
+            Box(
+                modifier = Modifier
+                    .weight(0.44f)
+                    .height(48.dp)
+                    .background(rec.wingColor.copy(alpha = if (rec.bestZone == SeatZone.WING) 0.35f else 0.18f))
+                    .then(
+                        if (rec.bestZone == SeatZone.WING)
+                            Modifier.padding(1.dp).background(Color.Transparent)
+                        else Modifier
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    if (rec.bestZone == SeatZone.WING) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = rec.wingColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    Text(
+                        text = "Wing",
+                        color = rec.wingColor,
+                        fontSize = 11.sp,
+                        fontWeight = if (rec.bestZone == SeatZone.WING) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
+            }
+            // Rear zone
+            Box(
+                modifier = Modifier
+                    .weight(0.28f)
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(topEnd = 6.dp, bottomEnd = 6.dp))
+                    .background(rec.rearColor.copy(alpha = 0.25f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Rear", color = rec.rearColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        Row(verticalAlignment = Alignment.Top) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(14.dp).padding(top = 1.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = rec.explanation,
+                color = TextSecondary,
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// What To Do
+// ─────────────────────────────────────────────────────────────────────────────
+
+private data class Tip(val icon: ImageVector, val text: String)
+
+private fun tipsFor(severity: TurbulenceSeverity): List<Tip> {
+    val tips = mutableListOf(
+        Tip(Icons.Default.Lock, "Keep your seatbelt fastened when seated"),
+        Tip(Icons.Default.AirplanemodeActive, "Secure loose items in overhead bins or under seat"),
+        Tip(Icons.Default.Person, "Follow crew instructions at all times")
+    )
+    when (severity) {
+        TurbulenceSeverity.MODERATE -> {
+            tips.add(Tip(Icons.Default.Warning, "Avoid hot drinks during expected turbulence"))
+        }
+        TurbulenceSeverity.SEVERE, TurbulenceSeverity.EXTREME -> {
+            tips.add(Tip(Icons.Default.Warning, "Avoid hot drinks during expected turbulence"))
+            tips.add(Tip(Icons.Default.Person, "Return to your seat during severe turbulence"))
+            tips.add(Tip(Icons.Default.CheckCircle, "Check on children and elderly passengers"))
+        }
+        else -> {}
+    }
+    return tips
+}
+
+@Composable
+private fun WhatToDoSection(severity: TurbulenceSeverity) {
+    val tips = tipsFor(severity)
+    SectionCard {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lightbulb,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "What To Do",
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp
+            )
+        }
+
+        tips.forEachIndexed { index, tip ->
+            if (index > 0) Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(
+                    imageVector = tip.icon,
+                    contentDescription = null,
+                    tint = TurboBlue,
+                    modifier = Modifier.size(16.dp).padding(top = 1.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = tip.text,
+                    color = TextSecondary,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                )
+            }
         }
     }
 }

@@ -43,6 +43,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import com.google.android.play.core.review.ReviewManagerFactory
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -78,6 +81,24 @@ fun OnboardingScreen(
 ) {
     var currentStep by remember { mutableIntStateOf(0) }
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(currentStep) {
+        if (currentStep == 3) {
+            delay(500)
+            try {
+                val reviewManager = ReviewManagerFactory.create(context)
+                reviewManager.requestReviewFlow().addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val activity = context as? android.app.Activity
+                        if (activity != null) {
+                            reviewManager.launchReviewFlow(activity, task.result)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
 
     // Determine background based on step
     val isDarkStep = currentStep == 10
