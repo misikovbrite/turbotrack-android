@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
@@ -31,13 +32,18 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import com.android.billingclient.api.ProductDetails
 import com.britetodo.turbotrack.services.BillingService
 import androidx.compose.runtime.Composable
@@ -62,9 +68,11 @@ import com.britetodo.turbotrack.theme.TurboBackground
 import com.britetodo.turbotrack.theme.TurboCard
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
+    onClose: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val prefs by viewModel.prefs.collectAsState()
@@ -76,12 +84,36 @@ fun SettingsScreen(
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
 
+    Scaffold(
+        modifier = modifier,
+        containerColor = TurboBackground,
+        topBar = {
+            if (onClose != null) {
+                TopAppBar(
+                    title = {
+                        Text("Settings", fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onClose) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = TextPrimary)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = TurboCard,
+                        scrolledContainerColor = TurboCard
+                    )
+                )
+            }
+        }
+    ) { innerPadding ->
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(TurboBackground)
+            .padding(innerPadding)
             .verticalScroll(rememberScrollState())
     ) {
+        if (onClose == null) {
         Text(
             text = "Settings",
             fontSize = 22.sp,
@@ -89,6 +121,7 @@ fun SettingsScreen(
             color = TextPrimary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
         )
+        }
 
         // ── Premium ────────────────────────────────────────────────────────────
         SettingsSection("Premium") {
@@ -342,6 +375,7 @@ fun SettingsScreen(
         )
         Spacer(Modifier.height(32.dp))
     }
+    } // end Scaffold content
 }
 
 @Composable

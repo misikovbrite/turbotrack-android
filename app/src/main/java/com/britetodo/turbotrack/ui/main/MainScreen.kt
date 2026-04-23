@@ -7,7 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -18,10 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,7 +46,6 @@ private val tabs = listOf(
     TabItem("Map", Icons.Default.Map),
     TabItem("Forecast", Icons.Default.Flight),
     TabItem("Reports", Icons.Default.List),
-    TabItem("Settings", Icons.Default.Settings)
 )
 
 @Composable
@@ -55,6 +53,7 @@ fun MainScreen(
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(1) } // Default to Forecast
+    var showSettings by rememberSaveable { mutableStateOf(false) }
 
     val showPaywall by settingsViewModel.showPaywall.collectAsState()
     val paywallSource by settingsViewModel.paywallSource.collectAsState()
@@ -91,9 +90,11 @@ fun MainScreen(
         ) { innerPadding ->
             when (selectedTab) {
                 0 -> TurbulenceMapScreen(modifier = Modifier.padding(innerPadding))
-                1 -> ForecastTabScreen(modifier = Modifier.padding(innerPadding))
+                1 -> ForecastTabScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    onOpenSettings = { showSettings = true }
+                )
                 2 -> ReportsScreen(modifier = Modifier.padding(innerPadding))
-                3 -> SettingsScreen(modifier = Modifier.padding(innerPadding))
             }
         }
 
@@ -111,6 +112,14 @@ fun MainScreen(
             UpsellPaywallScreen(
                 onDismiss = { settingsViewModel.dismissUpsell() },
                 viewModel = settingsViewModel
+            )
+        }
+
+        // Settings overlay (shown as modal, matching iOS .sheet behavior)
+        if (showSettings) {
+            SettingsScreen(
+                modifier = Modifier.fillMaxSize(),
+                onClose = { showSettings = false }
             )
         }
     }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -320,9 +321,10 @@ private fun QuizContinueButton(
 
     Box(
         modifier = Modifier
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 32.dp, top = 16.dp)
             .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp)
+            .padding(top = 16.dp, bottom = 32.dp)
             .height(64.dp)
             .shadow(
                 elevation = if (enabled) 12.dp else 0.dp,

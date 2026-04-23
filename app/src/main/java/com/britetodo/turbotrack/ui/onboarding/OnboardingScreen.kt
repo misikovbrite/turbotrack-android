@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -74,7 +75,7 @@ fun OnboardingScreen(
     val state by viewModel.state.collectAsState()
 
     // Determine background based on step
-    val isDarkStep = currentStep == 8
+    val isDarkStep = currentStep == 10
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isDarkStep) {
@@ -100,15 +101,7 @@ fun OnboardingScreen(
         }
 
         Column(modifier = Modifier.fillMaxSize()) {
-            // Progress bar: only on steps 1-7
-            if (currentStep in 1..7) {
-                OnboardingProgressBar(
-                    currentStep = currentStep,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                )
-            } else {
-                Spacer(modifier = Modifier.height(if (currentStep == 0) 48.dp else 16.dp))
-            }
+            Spacer(modifier = Modifier.height(if (currentStep == 0) 48.dp else 16.dp))
 
             // Step content
             Box(modifier = Modifier.weight(1f)) {
@@ -117,27 +110,29 @@ fun OnboardingScreen(
                     1 -> Step1KnowBeforeYouFly(onContinue = { currentStep = 2 })
                     2 -> Step2UnderstandEveryBump(onContinue = { currentStep = 3 })
                     3 -> Step3RealPilotReports(onContinue = { currentStep = 4 })
-                    4 -> Step4Quiz1(
+                    4 -> Step4FlightNumber(onContinue = { currentStep = 5 })
+                    5 -> Step5BestSeat(onContinue = { currentStep = 6 })
+                    6 -> Step4Quiz1(
                         selected = state.quizQ1,
                         onSelect = viewModel::setQ1,
-                        onContinue = { currentStep = 5 }
-                    )
-                    5 -> Step5Quiz2(
-                        selected = state.quizQ2,
-                        onSelect = viewModel::setQ2,
-                        onContinue = { currentStep = 6 }
-                    )
-                    6 -> Step6Quiz3(
-                        selected = state.quizQ3,
-                        onSelect = viewModel::setQ3,
                         onContinue = { currentStep = 7 }
                     )
-                    7 -> Step7Quiz4(
-                        selected = state.quizQ4,
-                        onToggle = viewModel::toggleQ4,
+                    7 -> Step5Quiz2(
+                        selected = state.quizQ2,
+                        onSelect = viewModel::setQ2,
                         onContinue = { currentStep = 8 }
                     )
-                    8 -> Step8DarkSetup(
+                    8 -> Step6Quiz3(
+                        selected = state.quizQ3,
+                        onSelect = viewModel::setQ3,
+                        onContinue = { currentStep = 9 }
+                    )
+                    9 -> Step7Quiz4(
+                        selected = state.quizQ4,
+                        onToggle = viewModel::toggleQ4,
+                        onContinue = { currentStep = 10 }
+                    )
+                    10 -> Step8DarkSetup(
                         onComplete = {
                             viewModel.completeOnboarding()
                             onComplete()
@@ -264,9 +259,10 @@ private fun ContinueButton(
 
     Box(
         modifier = Modifier
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 32.dp, top = 16.dp)
             .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp)
+            .padding(top = 16.dp, bottom = 32.dp)
             .height(64.dp)
             .shadow(
                 elevation = if (enabled) 12.dp else 0.dp,
@@ -327,12 +323,12 @@ private fun Step0Welcome(onContinue: () -> Unit) {
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(Modifier.weight(0.15f))
+
         // Logo with glow
         Box(contentAlignment = Alignment.Center) {
-            // Glow
             Box(
                 modifier = Modifier
                     .size(200.dp)
@@ -348,7 +344,6 @@ private fun Step0Welcome(onContinue: () -> Unit) {
                         CircleShape
                     )
             )
-            // Logo image
             Image(
                 painter = painterResource(R.drawable.app_logo),
                 contentDescription = "App Logo",
@@ -404,7 +399,7 @@ private fun Step0Welcome(onContinue: () -> Unit) {
             modifier = Modifier.padding(horizontal = 40.dp)
         )
 
-        Spacer(Modifier.height(60.dp))
+        Spacer(Modifier.weight(1f))
 
         ContinueButton(onClick = onContinue, label = "Continue")
     }
@@ -936,7 +931,308 @@ private fun Step3RealPilotReports(onContinue: () -> Unit) {
     }
 }
 
-// ── Steps 4-7: Quiz (delegates to OnboardingQuizScreen.kt) ───────────────────
+// ── Step 4: Search by Flight Number ──────────────────────────────────────────
+
+@Composable
+private fun Step4FlightNumber(onContinue: () -> Unit) {
+    var iconVisible by remember { mutableStateOf(false) }
+    var titleVisible by remember { mutableStateOf(false) }
+    var subtitleVisible by remember { mutableStateOf(false) }
+
+    val iconScale by animateFloatAsState(
+        targetValue = if (iconVisible) 1f else 0.5f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
+        label = "iconScale"
+    )
+    val iconAlpha by animateFloatAsState(targetValue = if (iconVisible) 1f else 0f, animationSpec = tween(600), label = "iconAlpha")
+    val titleAlpha by animateFloatAsState(targetValue = if (titleVisible) 1f else 0f, animationSpec = tween(600), label = "titleAlpha")
+    val subtitleAlpha by animateFloatAsState(targetValue = if (subtitleVisible) 1f else 0f, animationSpec = tween(600), label = "subtAlpha")
+
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(200)
+        iconVisible = true
+        kotlinx.coroutines.delay(300)
+        titleVisible = true
+        kotlinx.coroutines.delay(200)
+        subtitleVisible = true
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spacer(Modifier.height(8.dp))
+
+            // Flight number demo card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .scale(iconScale)
+                    .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(0.08f))
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White)
+                    .padding(20.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    // Search input demo
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(OnboardDark.copy(alpha = 0.06f))
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🔍", fontSize = 18.sp)
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = "UA 234",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = OnboardDark,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text("✓", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34C759))
+                    }
+
+                    // Resolved route
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.width(18.dp)
+                            ) {
+                                Box(modifier = Modifier.size(10.dp).background(Color(0xFF34C759), CircleShape))
+                                Box(modifier = Modifier.width(2.dp).height(24.dp).background(OnboardDark.copy(alpha = 0.15f)))
+                                Box(modifier = Modifier.size(10.dp).background(Color(0xFFFF3B30), CircleShape))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Column {
+                                    Text("San Francisco (KSFO)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnboardDark)
+                                    Text("United Airlines", fontSize = 12.sp, color = OnboardSub)
+                                }
+                                Spacer(Modifier.height(8.dp))
+                                Text("New York (KEWR)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnboardDark)
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFFF9500).copy(alpha = 0.1f))
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("💨", fontSize = 14.sp)
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text("Light Turbulence Expected", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnboardDark)
+                                Text("FL350 — FL390", fontSize = 12.sp, color = OnboardSub)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(36.dp))
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(text = "Search by", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = AccentBlue.copy(alpha = titleAlpha), textAlign = TextAlign.Center)
+                Text(text = "Flight Number", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = OnboardDark.copy(alpha = titleAlpha), textAlign = TextAlign.Center)
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            Text(
+                text = "Just enter your flight number —\nwe'll find the route and forecast automatically",
+                fontSize = 17.sp, color = OnboardSub.copy(alpha = subtitleAlpha),
+                textAlign = TextAlign.Center, lineHeight = 25.sp,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+
+            Spacer(Modifier.height(16.dp))
+        }
+
+        ContinueButton(onClick = onContinue)
+    }
+}
+
+// ── Step 5: Best Seat Recommendation ─────────────────────────────────────────
+
+@Composable
+private fun Step5BestSeat(onContinue: () -> Unit) {
+    var iconVisible by remember { mutableStateOf(false) }
+    var titleVisible by remember { mutableStateOf(false) }
+    var subtitleVisible by remember { mutableStateOf(false) }
+
+    val iconScale by animateFloatAsState(
+        targetValue = if (iconVisible) 1f else 0.5f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
+        label = "iconScale"
+    )
+    val titleAlpha by animateFloatAsState(targetValue = if (titleVisible) 1f else 0f, animationSpec = tween(600), label = "titleAlpha")
+    val subtitleAlpha by animateFloatAsState(targetValue = if (subtitleVisible) 1f else 0f, animationSpec = tween(600), label = "subtAlpha")
+
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(200)
+        iconVisible = true
+        kotlinx.coroutines.delay(300)
+        titleVisible = true
+        kotlinx.coroutines.delay(200)
+        subtitleVisible = true
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spacer(Modifier.height(8.dp))
+
+            // Plane seat diagram card
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .scale(iconScale)
+                    .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(0.08f))
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White)
+                    .padding(20.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Nose
+                    Box(
+                        modifier = Modifier
+                            .width(50.dp).height(20.dp)
+                            .clip(RoundedCornerShape(50.dp))
+                            .background(OnboardDark.copy(alpha = 0.08f))
+                    )
+
+                    // Three zones side by side
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Front zone
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Front", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFFFF9500))
+                            Spacer(Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth().height(70.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFFF9500).copy(alpha = 0.12f))
+                                    .border(1.dp, Color(0xFFFF9500).copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            )
+                        }
+                        // Wing zone — highlighted as Best
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1.3f)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text("✓", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34C759))
+                                Text("Best", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34C759))
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth().height(70.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF34C759).copy(alpha = 0.15f))
+                                    .border(2.dp, Color(0xFF34C759), RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("✈", fontSize = 20.sp, color = Color(0xFF34C759).copy(alpha = 0.6f))
+                            }
+                        }
+                        // Rear zone
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Rear", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFFFF9500))
+                            Spacer(Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth().height(70.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFFF9500).copy(alpha = 0.12f))
+                                    .border(1.dp, Color(0xFFFF9500).copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            )
+                        }
+                    }
+
+                    // Tail
+                    Box(
+                        modifier = Modifier
+                            .width(30.dp).height(16.dp)
+                            .clip(RoundedCornerShape(50.dp))
+                            .background(OnboardDark.copy(alpha = 0.08f))
+                    )
+
+                    // Tip card
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFFFCC00).copy(alpha = 0.08f))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("💡", fontSize = 18.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Middle rows over the wing feel up to 2× less turbulence than the rear",
+                            fontSize = 13.sp, color = OnboardSub, lineHeight = 18.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(36.dp))
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(text = "Sit Calmer,", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = AccentBlue.copy(alpha = titleAlpha), textAlign = TextAlign.Center)
+                Text(text = "Fly Calmer", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = OnboardDark.copy(alpha = titleAlpha), textAlign = TextAlign.Center)
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            Text(
+                text = "We recommend the best seat based on your route's turbulence forecast",
+                fontSize = 17.sp, color = OnboardSub.copy(alpha = subtitleAlpha),
+                textAlign = TextAlign.Center, lineHeight = 25.sp,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+
+            Spacer(Modifier.height(16.dp))
+        }
+
+        ContinueButton(onClick = onContinue)
+    }
+}
+
+// ── Steps 6-9: Quiz (delegates to OnboardingQuizScreen.kt) ───────────────────
 
 @Composable
 private fun Step4Quiz1(
