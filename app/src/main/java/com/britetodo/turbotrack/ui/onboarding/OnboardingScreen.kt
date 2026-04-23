@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,6 +31,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AirplanemodeActive
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -1069,6 +1074,10 @@ private fun Step4FlightNumber(onContinue: () -> Unit) {
 
 @Composable
 private fun Step5BestSeat(onContinue: () -> Unit) {
+    val green  = Color(0xFF34C759)
+    val orange = Color(0xFFFF9500)
+    val gray   = OnboardDark.copy(alpha = 0.08f)
+
     var iconVisible by remember { mutableStateOf(false) }
     var titleVisible by remember { mutableStateOf(false) }
     var subtitleVisible by remember { mutableStateOf(false) }
@@ -1078,16 +1087,13 @@ private fun Step5BestSeat(onContinue: () -> Unit) {
         animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
         label = "iconScale"
     )
-    val titleAlpha by animateFloatAsState(targetValue = if (titleVisible) 1f else 0f, animationSpec = tween(600), label = "titleAlpha")
+    val titleAlpha   by animateFloatAsState(targetValue = if (titleVisible) 1f else 0f,    animationSpec = tween(600), label = "titleAlpha")
     val subtitleAlpha by animateFloatAsState(targetValue = if (subtitleVisible) 1f else 0f, animationSpec = tween(600), label = "subtAlpha")
 
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(200)
-        iconVisible = true
-        kotlinx.coroutines.delay(300)
-        titleVisible = true
-        kotlinx.coroutines.delay(200)
-        subtitleVisible = true
+        kotlinx.coroutines.delay(200); iconVisible = true
+        kotlinx.coroutines.delay(300); titleVisible = true
+        kotlinx.coroutines.delay(200); subtitleVisible = true
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -1102,7 +1108,7 @@ private fun Step5BestSeat(onContinue: () -> Unit) {
         ) {
             Spacer(Modifier.height(8.dp))
 
-            // Plane seat diagram card
+            // ── Plane seat diagram card (exact iOS layout) ─────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1114,80 +1120,116 @@ private fun Step5BestSeat(onContinue: () -> Unit) {
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Nose
+                    // Nose capsule
                     Box(
                         modifier = Modifier
                             .width(50.dp).height(20.dp)
                             .clip(RoundedCornerShape(50.dp))
-                            .background(OnboardDark.copy(alpha = 0.08f))
+                            .background(gray)
                     )
 
-                    // Three zones side by side
+                    // Three zones: Front | Wing (Best) | Rear
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        // Front zone
+                        // ── Front (orange) ─────────────────────────────────────
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Front", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFFFF9500))
+                            Text("Front", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = orange)
                             Spacer(Modifier.height(4.dp))
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth().height(70.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFFFF9500).copy(alpha = 0.12f))
-                                    .border(1.dp, Color(0xFFFF9500).copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                    .border(1.dp, orange.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(orange.copy(alpha = 0.15f))
                             )
                         }
-                        // Wing zone — highlighted as Best
+
+                        // ── Wing / Best (green) ────────────────────────────────
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1.3f)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text("✓", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34C759))
-                                Text("Best", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34C759))
+                            // "✓ Best" label
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Text("✓", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = green)
+                                Text("Best", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = green)
                             }
                             Spacer(Modifier.height(4.dp))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth().height(70.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF34C759).copy(alpha = 0.15f))
-                                    .border(2.dp, Color(0xFF34C759), RoundedCornerShape(8.dp)),
-                                contentAlignment = Alignment.Center
+
+                            // Wing zone: [left wing tab] [main green box with airplane] [right wing tab]
+                            Row(
+                                modifier = Modifier.fillMaxWidth().height(70.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("✈", fontSize = 20.sp, color = Color(0xFF34C759).copy(alpha = 0.6f))
+                                // Left wing tab
+                                Box(
+                                    modifier = Modifier
+                                        .width(14.dp).height(8.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(green.copy(alpha = 0.45f))
+                                )
+                                // Main bordered green rectangle
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f).fillMaxHeight()
+                                        .border(2.dp, green, RoundedCornerShape(6.dp))
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(green.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AirplanemodeActive,
+                                        contentDescription = null,
+                                        tint = green.copy(alpha = 0.65f),
+                                        modifier = Modifier
+                                            .size(26.dp)
+                                            .rotate(90f)
+                                    )
+                                }
+                                // Right wing tab
+                                Box(
+                                    modifier = Modifier
+                                        .width(14.dp).height(8.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(green.copy(alpha = 0.45f))
+                                )
                             }
                         }
-                        // Rear zone
+
+                        // ── Rear (orange) ──────────────────────────────────────
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Rear", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color(0xFFFF9500))
+                            Text("Rear", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = orange)
                             Spacer(Modifier.height(4.dp))
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth().height(70.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFFFF9500).copy(alpha = 0.12f))
-                                    .border(1.dp, Color(0xFFFF9500).copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                    .border(1.dp, orange.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(orange.copy(alpha = 0.15f))
                             )
                         }
                     }
 
-                    // Tail
+                    // Tail capsule
                     Box(
                         modifier = Modifier
                             .width(30.dp).height(16.dp)
                             .clip(RoundedCornerShape(50.dp))
-                            .background(OnboardDark.copy(alpha = 0.08f))
+                            .background(gray)
                     )
 
                     // Tip card
@@ -1197,13 +1239,15 @@ private fun Step5BestSeat(onContinue: () -> Unit) {
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFFFFCC00).copy(alpha = 0.08f))
                             .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
                         Text("💡", fontSize = 18.sp)
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text = "Middle rows over the wing feel up to 2× less turbulence than the rear",
-                            fontSize = 13.sp, color = OnboardSub, lineHeight = 18.sp
+                            fontSize = 13.sp,
+                            color = OnboardSub,
+                            lineHeight = 18.sp
                         )
                     }
                 }
@@ -1211,17 +1255,31 @@ private fun Step5BestSeat(onContinue: () -> Unit) {
 
             Spacer(Modifier.height(36.dp))
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 16.dp)) {
-                Text(text = "Sit Calmer,", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = AccentBlue.copy(alpha = titleAlpha), textAlign = TextAlign.Center)
-                Text(text = "Fly Calmer", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = OnboardDark.copy(alpha = titleAlpha), textAlign = TextAlign.Center)
+            // Title
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
+                Text(
+                    text = "Sit Calmer,",
+                    fontSize = 36.sp, fontWeight = FontWeight.ExtraBold,
+                    color = AccentBlue.copy(alpha = titleAlpha), textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "Fly Calmer",
+                    fontSize = 36.sp, fontWeight = FontWeight.ExtraBold,
+                    color = OnboardDark.copy(alpha = titleAlpha), textAlign = TextAlign.Center
+                )
             }
 
             Spacer(Modifier.height(14.dp))
 
             Text(
                 text = "We recommend the best seat based on your route's turbulence forecast",
-                fontSize = 17.sp, color = OnboardSub.copy(alpha = subtitleAlpha),
-                textAlign = TextAlign.Center, lineHeight = 25.sp,
+                fontSize = 17.sp,
+                color = OnboardSub.copy(alpha = subtitleAlpha),
+                textAlign = TextAlign.Center,
+                lineHeight = 25.sp,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
 

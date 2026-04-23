@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -14,7 +16,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -28,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.britetodo.turbotrack.theme.TurboBackground
-import com.britetodo.turbotrack.theme.TurboBlue
 import com.britetodo.turbotrack.theme.TurboCard
 import com.britetodo.turbotrack.theme.TextPrimary
 import com.britetodo.turbotrack.theme.TextSecondary
@@ -49,51 +49,49 @@ fun ForecastTabScreen(
 
     val isInputScreen = state.currentScreen == ForecastScreen.Input
 
-    Scaffold(
-        modifier = modifier,
-        containerColor = TurboBackground,
-        topBar = {
-            if (isInputScreen) {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Turbulence Forecast",
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
-                        )
-                    },
-                    actions = {
-                        if (!isPremium) {
-                            IconButton(onClick = { settingsViewModel.showPaywall("forecast_toolbar") }) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = "Upgrade",
-                                    tint = Color(0xFFFF9500)
-                                )
-                            }
-                        }
-                        IconButton(onClick = onOpenSettings) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(TurboBackground)
+    ) {
+        // TopAppBar shown only on the route-input screen.
+        // windowInsets = 0 because the parent (MainScreen) Scaffold already applied the status bar inset.
+        if (isInputScreen) {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Turbulence Forecast",
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                },
+                actions = {
+                    if (!isPremium) {
+                        IconButton(onClick = { settingsViewModel.showPaywall("forecast_toolbar") }) {
                             Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Settings",
-                                tint = TextSecondary
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Upgrade",
+                                tint = Color(0xFFFF9500)
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = TurboCard,
-                        scrolledContainerColor = TurboCard
-                    )
-                )
-            }
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = TextSecondary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = TurboCard,
+                    scrolledContainerColor = TurboCard
+                ),
+                windowInsets = WindowInsets(0)
+            )
         }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(TurboBackground)
-                .padding(innerPadding)
-        ) {
+
+        Box(modifier = Modifier.weight(1f)) {
             AnimatedContent(
                 targetState = state.currentScreen,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
