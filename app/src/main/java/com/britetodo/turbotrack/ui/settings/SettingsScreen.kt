@@ -1,5 +1,6 @@
 package com.britetodo.turbotrack.ui.settings
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -22,7 +24,10 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -30,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -58,7 +64,10 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val prefs by viewModel.prefs.collectAsState()
+    val isPremium by viewModel.isPremium.collectAsState()
+    val productDetails by viewModel.productDetails.collectAsState()
     val context = LocalContext.current
+    val activity = context as? Activity
     val scope = rememberCoroutineScope()
 
     Column(
@@ -74,6 +83,58 @@ fun SettingsScreen(
             color = TextPrimary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
         )
+
+        // ── Premium ────────────────────────────────────────────────────────────
+        SettingsSection("Premium") {
+            if (isPremium) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFCC00), modifier = Modifier.size(22.dp))
+                    Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text("Premium Active", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Unlimited forecasts & features", color = TextMuted, fontSize = 12.sp)
+                    }
+                }
+            } else {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Star, contentDescription = null, tint = TurboBlue, modifier = Modifier.size(22.dp))
+                        Column(modifier = Modifier.padding(start = 12.dp)) {
+                            Text("Upgrade to Premium", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                            val price = productDetails?.subscriptionOfferDetails
+                                ?.firstOrNull()?.pricingPhases?.pricingPhaseList
+                                ?.lastOrNull()?.formattedPrice
+                            Text(
+                                text = if (price != null) "$price / week" else "Unlimited forecasts & features",
+                                color = TextMuted,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Button(
+                        onClick = { activity?.let { viewModel.subscribe(it) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = TurboBlue)
+                    ) {
+                        Text("Subscribe", fontWeight = FontWeight.SemiBold)
+                    }
+                    TextButton(
+                        onClick = { viewModel.restorePurchases() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Restore Purchases", color = TextMuted, fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
 
         // ── Notifications ──────────────────────────────────────────────────────
         SettingsSection("Notifications") {

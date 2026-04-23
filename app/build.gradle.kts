@@ -15,8 +15,8 @@ android {
         applicationId = "com.britetodo.turbotrack"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -111,6 +111,9 @@ dependencies {
 
     // Splash screen
     implementation(libs.splashscreen)
+
+    // Billing
+    implementation(libs.billing)
 
     // Image loading
     implementation(libs.coil.compose)

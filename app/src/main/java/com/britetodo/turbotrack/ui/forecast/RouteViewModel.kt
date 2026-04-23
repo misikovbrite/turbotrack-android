@@ -6,6 +6,7 @@ import com.britetodo.turbotrack.data.model.Airport
 import com.britetodo.turbotrack.data.model.DailyForecast
 import com.britetodo.turbotrack.data.model.TurbulenceForecast
 import com.britetodo.turbotrack.data.model.TurbulenceSeverity
+import com.britetodo.turbotrack.services.AnalyticsService
 import com.britetodo.turbotrack.services.TurbulenceForecastService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,7 +85,8 @@ data class RouteUiState(
 
 @HiltViewModel
 class RouteViewModel @Inject constructor(
-    private val forecastService: TurbulenceForecastService
+    private val forecastService: TurbulenceForecastService,
+    private val analytics: AnalyticsService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RouteUiState())
@@ -430,11 +432,25 @@ class RouteViewModel @Inject constructor(
                 error = null
             )
         } else {
-            _state.value = _state.value.copy(
+            val s = _state.value
+            analytics.logForecastGenerated(
+                originIata = s.origin?.iata ?: "",
+                destinationIata = s.destination?.iata ?: "",
+                severity = s.forecastResult?.overallSeverity?.name ?: "UNKNOWN"
+            )
+            _state.value = s.copy(
                 currentScreen = ForecastScreen.Story,
                 isAnalyzing = false
             )
         }
+    }
+
+    fun logShareForecast() {
+        val s = _state.value
+        analytics.logShareForecast(
+            originIata = s.origin?.iata ?: "",
+            destinationIata = s.destination?.iata ?: ""
+        )
     }
 
     /** Called when user taps Cancel on the analysis screen. */

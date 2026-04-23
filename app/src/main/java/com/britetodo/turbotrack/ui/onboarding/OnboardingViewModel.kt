@@ -3,6 +3,7 @@ package com.britetodo.turbotrack.ui.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.britetodo.turbotrack.data.preferences.UserPreferencesRepository
+import com.britetodo.turbotrack.services.AnalyticsService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,8 @@ data class OnboardingState(
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    private val prefsRepo: UserPreferencesRepository
+    private val prefsRepo: UserPreferencesRepository,
+    private val analytics: AnalyticsService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(OnboardingState())
@@ -47,6 +49,7 @@ class OnboardingViewModel @Inject constructor(
                 q5 = s.quizQ5
             )
             prefsRepo.setOnboardingCompleted(true)
+            analytics.logTutorialComplete()
         }
     }
 }

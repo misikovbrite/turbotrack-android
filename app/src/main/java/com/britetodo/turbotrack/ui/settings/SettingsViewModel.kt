@@ -1,25 +1,41 @@
 package com.britetodo.turbotrack.ui.settings
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.android.billingclient.api.ProductDetails
 import com.britetodo.turbotrack.data.preferences.UserPreferences
 import com.britetodo.turbotrack.data.preferences.UserPreferencesRepository
+import com.britetodo.turbotrack.services.BillingService
 import com.britetodo.turbotrack.services.NotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val prefsRepo: UserPreferencesRepository,
-    private val notificationService: NotificationService
+    private val notificationService: NotificationService,
+    private val billingService: BillingService
 ) : ViewModel() {
 
     val prefs: StateFlow<UserPreferences?> = prefsRepo.userPreferences
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val isPremium: StateFlow<Boolean> = billingService.isPremium
+
+    val productDetails: StateFlow<ProductDetails?> = billingService.productDetails
+
+    fun subscribe(activity: Activity) {
+        billingService.launchPurchaseFlow(activity)
+    }
+
+    fun restorePurchases() {
+        billingService.queryExistingPurchases()
+    }
 
     fun setNotificationsEnabled(enabled: Boolean) = viewModelScope.launch {
         prefsRepo.setNotificationsEnabled(enabled)

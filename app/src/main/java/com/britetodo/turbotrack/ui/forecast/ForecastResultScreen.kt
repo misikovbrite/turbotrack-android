@@ -127,6 +127,7 @@ fun ForecastResultScreen(viewModel: RouteViewModel) {
             },
             actions = {
                 IconButton(onClick = {
+                    viewModel.logShareForecast()
                     val text = buildShareText(viewModel)
                     context.startActivity(
                         Intent.createChooser(
@@ -207,6 +208,7 @@ fun ForecastResultScreen(viewModel: RouteViewModel) {
             item {
                 Button(
                     onClick = {
+                        viewModel.logShareForecast()
                         val text = buildShareText(viewModel)
                         context.startActivity(
                             Intent.createChooser(

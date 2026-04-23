@@ -22,6 +22,7 @@ firebase = "33.5.1"
 workManager = "2.9.1"
 splashscreen = "1.0.1"
 coil = "2.7.0"
+billing = "7.1.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,6 +61,7 @@ hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltNa
 hilt-work-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltNavigation" }
 splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+billing = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
