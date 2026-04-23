@@ -48,6 +48,13 @@ class BillingService @Inject constructor(
     private val _showUpsell = MutableStateFlow(false)
     val showUpsell: StateFlow<Boolean> = _showUpsell.asStateFlow()
 
+    // Paywall overlay state
+    private val _showPaywall = MutableStateFlow(false)
+    val showPaywall: StateFlow<Boolean> = _showPaywall.asStateFlow()
+
+    private val _paywallSource = MutableStateFlow("unknown")
+    val paywallSource: StateFlow<String> = _paywallSource.asStateFlow()
+
     // All loaded ProductDetails keyed by productId
     private val _products = MutableStateFlow<Map<String, ProductDetails>>(emptyMap())
     val products: StateFlow<Map<String, ProductDetails>> = _products.asStateFlow()
@@ -121,6 +128,8 @@ class BillingService @Inject constructor(
         val details = _products.value[productId] ?: return
         val offerToken = details.subscriptionOfferDetails?.firstOrNull()?.offerToken ?: return
 
+        analytics.logPurchaseStarted(productId)
+
         val params = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(
                 listOf(
@@ -135,13 +144,35 @@ class BillingService @Inject constructor(
         billingClient.launchBillingFlow(activity, params)
     }
 
+    fun showPaywall(source: String) {
+        _paywallSource.value = source
+        _showPaywall.value = true
+    }
+
+    fun dismissPaywall() {
+        _showPaywall.value = false
+    }
+
+    fun triggerUpsell() {
+        _showUpsell.value = true
+    }
+
     fun dismissUpsell() {
         _showUpsell.value = false
     }
 
     override fun onPurchasesUpdated(result: BillingResult, purchases: List<Purchase>?) {
-        if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            purchases.forEach { handlePurchase(it) }
+        when (result.responseCode) {
+            BillingClient.BillingResponseCode.OK -> {
+                purchases?.forEach { handlePurchase(it) }
+            }
+            BillingClient.BillingResponseCode.USER_CANCELED -> {
+                // Log cancel — we don't know the specific productId here, log generic
+                analytics.logPurchaseCancelled("unknown")
+            }
+            else -> {
+                analytics.logPurchaseFailed("code=${result.responseCode}: ${result.debugMessage}")
+            }
         }
     }
 
@@ -216,5 +247,33 @@ class BillingService @Inject constructor(
         private const val KEY_PREMIUM      = "is_premium"
         private const val KEY_SUPER_PRO    = "has_super_pro"
         private const val KEY_UPSELL_SHOWN = "upsell_shown"
+    }
+
+    fun debugSetPremium(active: Boolean) {
+        if (com.britetodo.turbotrack.BuildConfig.DEBUG) {
+            updatePremiumState(active)
+        }
+    }
+
+    fun debugSetSuperPro(active: Boolean) {
+        if (com.britetodo.turbotrack.BuildConfig.DEBUG) {
+            updateSuperProState(active)
+        }
+    }
+
+    fun debugShowUpsell() {
+        if (com.britetodo.turbotrack.BuildConfig.DEBUG) {
+            _showUpsell.value = true
+        }
+    }
+
+    fun debugReset() {
+        if (com.britetodo.turbotrack.BuildConfig.DEBUG) {
+            updatePremiumState(false)
+            updateSuperProState(false)
+            prefs.edit().putBoolean(KEY_UPSELL_SHOWN, false).apply()
+            _showUpsell.value = false
+            _showPaywall.value = false
+        }
     }
 }

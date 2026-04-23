@@ -61,14 +61,22 @@ import com.britetodo.turbotrack.theme.TurboCard
 @Composable
 fun ReportsScreen(
     modifier: Modifier = Modifier,
-    viewModel: ReportsViewModel = hiltViewModel()
+    viewModel: ReportsViewModel = hiltViewModel(),
+    settingsViewModel: com.britetodo.turbotrack.ui.settings.SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val isPremium by settingsViewModel.isPremium.collectAsState()
+    val hasSuperPro by settingsViewModel.hasSuperPro.collectAsState()
     val sheetState = rememberModalBottomSheetState()
     var searchActive by remember { mutableStateOf(false) }
 
-    Column(
+    Box(
         modifier = modifier
+            .fillMaxSize()
+            .background(TurboBackground)
+    ) {
+    Column(
+        modifier = Modifier
             .fillMaxSize()
             .background(TurboBackground)
     ) {
@@ -196,7 +204,22 @@ fun ReportsScreen(
                 }
             }
         }
+    } // end Column
+
+    // Super Pro banner
+    if (isPremium && !hasSuperPro) {
+        com.britetodo.turbotrack.ui.components.SuperProBanner(
+            source = "reports",
+            onTap = { source ->
+                settingsViewModel.analytics.logUpsellBannerClicked(source)
+                settingsViewModel.triggerUpsell()
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 8.dp)
+        )
     }
+    } // end Box
 
     // Bottom Sheet
     state.selectedPirep?.let { pirep ->

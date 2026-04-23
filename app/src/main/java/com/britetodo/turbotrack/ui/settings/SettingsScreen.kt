@@ -1,6 +1,7 @@
 package com.britetodo.turbotrack.ui.settings
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -106,6 +107,19 @@ fun SettingsScreen(
                         )
                         Text("Unlimited forecasts & features", color = TextMuted, fontSize = 12.sp)
                     }
+                }
+                // Manage Subscription
+                TextButton(
+                    onClick = {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/account/subscriptions"))
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text("Manage Subscription", color = TurboBlue, fontSize = 14.sp)
                 }
                 // Upsell Super Pro if premium but not super pro yet
                 if (!hasSuperPro) {
@@ -303,6 +317,22 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(16.dp))
 
+        // ── Debug (only in DEBUG builds) ───────────────────────────────────────
+        if (BuildConfig.DEBUG) {
+            Spacer(Modifier.height(16.dp))
+            SettingsSection("Debug") {
+                DebugRow("Enable Premium") { scope.launch { viewModel.debugSetPremium(true) } }
+                Divider(color = Color(0xFFE5E5EA))
+                DebugRow("Enable Super Pro") { scope.launch { viewModel.debugSetSuperPro(true) } }
+                Divider(color = Color(0xFFE5E5EA))
+                DebugRow("Show Upsell") { scope.launch { viewModel.debugShowUpsell() } }
+                Divider(color = Color(0xFFE5E5EA))
+                DebugRow("Reset All") { scope.launch { viewModel.debugReset() } }
+                Divider(color = Color(0xFFE5E5EA))
+                DebugRow("Restart Onboarding") { scope.launch { viewModel.debugRestartOnboarding() } }
+            }
+        }
+
         Text(
             text = "TurboTrack provides turbulence forecasts for informational purposes only. Always consult official aviation weather services and follow all crew instructions during flight.",
             color = TextMuted,
@@ -415,6 +445,20 @@ private fun LinkRow(
             Text(title, color = TextPrimary, fontSize = 15.sp)
             Text(subtitle, color = TextMuted, fontSize = 12.sp)
         }
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted)
+    }
+}
+
+@Composable
+private fun DebugRow(title: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, color = Color(0xFFFF3B30), fontSize = 14.sp, modifier = Modifier.weight(1f))
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted)
     }
 }

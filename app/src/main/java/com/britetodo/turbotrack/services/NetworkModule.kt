@@ -45,6 +45,15 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @Named("aerodatabox")
+    fun provideAeroDataBoxRetrofit(client: OkHttpClient): Retrofit = Retrofit.Builder()
+        .baseUrl("https://aerodatabox.p.rapidapi.com/")
+        .client(client)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    @Provides
+    @Singleton
     fun provideAviationWeatherService(@Named("aviation") retrofit: Retrofit): AviationWeatherService =
         retrofit.create(AviationWeatherService::class.java)
 
@@ -52,4 +61,9 @@ object NetworkModule {
     @Singleton
     fun provideOpenMeteoService(@Named("openmeteo") retrofit: Retrofit): OpenMeteoService =
         retrofit.create(OpenMeteoService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFlightNumberApiService(@Named("aerodatabox") retrofit: Retrofit): FlightNumberApiService =
+        retrofit.create(FlightNumberApiService::class.java)
 }

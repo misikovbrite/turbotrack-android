@@ -49,4 +49,48 @@ class AnalyticsService @Inject constructor(
         }
         analytics.logEvent(FirebaseAnalytics.Event.PURCHASE, params)
     }
+
+    fun logPaywallShown(source: String) {
+        analytics.logEvent("paywall_shown", Bundle().apply { putString("source", source) })
+    }
+
+    fun logPaywallDismissed(source: String) {
+        analytics.logEvent("paywall_dismissed", Bundle().apply { putString("source", source) })
+    }
+
+    fun logPurchaseStarted(productId: String) {
+        analytics.logEvent("purchase_started", Bundle().apply { putString("product_id", productId) })
+    }
+
+    fun logPurchaseCancelled(productId: String) {
+        analytics.logEvent("purchase_cancelled", Bundle().apply { putString("product_id", productId) })
+    }
+
+    fun logPurchaseFailed(error: String) {
+        analytics.logEvent("purchase_failed", Bundle().apply { putString("error", error) })
+    }
+
+    fun logUpsellViewed() {
+        analytics.logEvent("upsell_paywall_viewed", null)
+    }
+
+    fun logUpsellCtaClicked() {
+        analytics.logEvent("upsell_cta_clicked", null)
+    }
+
+    fun logUpsellPurchaseStarted(productId: String) {
+        analytics.logEvent("upsell_purchase_started", Bundle().apply { putString("product_id", productId) })
+    }
+
+    fun logUpsellClosed() {
+        analytics.logEvent("upsell_paywall_closed", null)
+    }
+
+    fun logUpsellBannerClicked(source: String) {
+        analytics.logEvent("upsell_banner_clicked", Bundle().apply { putString("source", source) })
+    }
+
+    fun logRestorePurchases(success: Boolean) {
+        analytics.logEvent("restore_purchases", Bundle().apply { putBoolean("success", success) })
+    }
 }

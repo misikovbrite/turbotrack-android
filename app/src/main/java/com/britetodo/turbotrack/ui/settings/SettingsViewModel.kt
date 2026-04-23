@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.android.billingclient.api.ProductDetails
 import com.britetodo.turbotrack.data.preferences.UserPreferences
 import com.britetodo.turbotrack.data.preferences.UserPreferencesRepository
+import com.britetodo.turbotrack.services.AnalyticsService
 import com.britetodo.turbotrack.services.BillingService
 import com.britetodo.turbotrack.services.NotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +20,8 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val prefsRepo: UserPreferencesRepository,
     private val notificationService: NotificationService,
-    private val billingService: BillingService
+    private val billingService: BillingService,
+    val analytics: AnalyticsService
 ) : ViewModel() {
 
     val prefs: StateFlow<UserPreferences?> = prefsRepo.userPreferences
@@ -28,6 +30,8 @@ class SettingsViewModel @Inject constructor(
     val isPremium: StateFlow<Boolean> = billingService.isPremium
     val hasSuperPro: StateFlow<Boolean> = billingService.hasSuperPro
     val showUpsell: StateFlow<Boolean> = billingService.showUpsell
+    val showPaywall: StateFlow<Boolean> = billingService.showPaywall
+    val paywallSource: StateFlow<String> = billingService.paywallSource
     val products: StateFlow<Map<String, ProductDetails>> = billingService.products
 
     fun subscribe(activity: Activity, productId: String) {
@@ -68,5 +72,37 @@ class SettingsViewModel @Inject constructor(
 
     fun setDataRefreshInterval(minutes: Int) = viewModelScope.launch {
         prefsRepo.setDataRefreshInterval(minutes)
+    }
+
+    fun showPaywall(source: String) {
+        billingService.showPaywall(source)
+    }
+
+    fun triggerUpsell() {
+        billingService.triggerUpsell()
+    }
+
+    fun dismissPaywall() {
+        billingService.dismissPaywall()
+    }
+
+    fun debugSetPremium(active: Boolean) {
+        billingService.debugSetPremium(active)
+    }
+
+    fun debugSetSuperPro(active: Boolean) {
+        billingService.debugSetSuperPro(active)
+    }
+
+    fun debugShowUpsell() {
+        billingService.debugShowUpsell()
+    }
+
+    fun debugReset() {
+        billingService.debugReset()
+    }
+
+    fun debugRestartOnboarding() = viewModelScope.launch {
+        prefsRepo.setOnboardingCompleted(false)
     }
 }

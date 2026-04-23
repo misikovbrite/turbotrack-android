@@ -6,13 +6,19 @@ import com.britetodo.turbotrack.data.model.Airport
 import com.britetodo.turbotrack.data.model.DailyForecast
 import com.britetodo.turbotrack.data.model.TurbulenceForecast
 import com.britetodo.turbotrack.data.model.TurbulenceSeverity
+import com.britetodo.turbotrack.data.preferences.ForecastHistoryRepository
+import com.britetodo.turbotrack.data.preferences.HistoryEntry
 import com.britetodo.turbotrack.services.AnalyticsService
+import com.britetodo.turbotrack.services.FlightNumberService
 import com.britetodo.turbotrack.services.TurbulenceForecastService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 // ---------------------------------------------------------------------------
@@ -76,7 +82,15 @@ data class RouteUiState(
     // Analysis timing
     val analysisStartTime: Long? = null,
     val dataReady: Boolean = false,
-    val isAnalyzing: Boolean = false
+    val isAnalyzing: Boolean = false,
+
+    // Flight number search
+    val flightNumber: String = "",
+    val flightSearchLoading: Boolean = false,
+    val flightSearchError: String? = null,
+
+    // Recent history
+    val recentHistory: List<HistoryEntry> = emptyList()
 )
 
 // ---------------------------------------------------------------------------
@@ -86,11 +100,17 @@ data class RouteUiState(
 @HiltViewModel
 class RouteViewModel @Inject constructor(
     private val forecastService: TurbulenceForecastService,
-    private val analytics: AnalyticsService
+    private val analytics: AnalyticsService,
+    private val flightNumberService: FlightNumberService,
+    private val historyRepository: ForecastHistoryRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RouteUiState())
     val state: StateFlow<RouteUiState> = _state.asStateFlow()
+
+    init {
+        loadHistory()
+    }
 
     // -----------------------------------------------------------------------
     // Convenience accessors (mirror iOS computed properties on RouteViewModel)
@@ -433,11 +453,13 @@ class RouteViewModel @Inject constructor(
             )
         } else {
             val s = _state.value
+            val severityName = s.forecastResult?.overallSeverity?.name ?: "UNKNOWN"
             analytics.logForecastGenerated(
                 originIata = s.origin?.iata ?: "",
                 destinationIata = s.destination?.iata ?: "",
-                severity = s.forecastResult?.overallSeverity?.name ?: "UNKNOWN"
+                severity = severityName
             )
+            saveCurrentRouteToHistory(severityName)
             _state.value = s.copy(
                 currentScreen = ForecastScreen.Story,
                 isAnalyzing = false
@@ -478,11 +500,118 @@ class RouteViewModel @Inject constructor(
     }
 
     // -----------------------------------------------------------------------
+    // Flight number search
+    // -----------------------------------------------------------------------
+
+    fun setFlightNumber(s: String) {
+        _state.value = _state.value.copy(flightNumber = s, flightSearchError = null)
+    }
+
+    fun searchByFlightNumber() {
+        val number = _state.value.flightNumber.trim()
+        if (number.isBlank()) return
+
+        _state.value = _state.value.copy(
+            flightSearchLoading = true,
+            flightSearchError = null
+        )
+
+        viewModelScope.launch {
+            val result = flightNumberService.lookupFlight(number)
+            result.fold(
+                onSuccess = { route ->
+                    val depAirport = Airport.ALL.firstOrNull {
+                        it.icao.equals(route.departureIcao, ignoreCase = true)
+                    } ?: Airport.search(route.departureCity).firstOrNull()
+                      ?: Airport.search(route.departureIcao).firstOrNull()
+
+                    val arrAirport = Airport.ALL.firstOrNull {
+                        it.icao.equals(route.arrivalIcao, ignoreCase = true)
+                    } ?: Airport.search(route.arrivalCity).firstOrNull()
+                      ?: Airport.search(route.arrivalIcao).firstOrNull()
+
+                    var newState = _state.value.copy(flightSearchLoading = false, flightSearchError = null)
+                    if (depAirport != null) {
+                        newState = newState.copy(
+                            origin = depAirport,
+                            originQuery = depAirport.displayName,
+                            originSuggestions = emptyList()
+                        )
+                    }
+                    if (arrAirport != null) {
+                        newState = newState.copy(
+                            destination = arrAirport,
+                            destinationQuery = arrAirport.displayName,
+                            destinationSuggestions = emptyList()
+                        )
+                    }
+                    if (depAirport == null && arrAirport == null) {
+                        newState = newState.copy(flightSearchError = "Could not find airports for flight $number")
+                    }
+                    _state.value = newState
+                },
+                onFailure = { e ->
+                    _state.value = _state.value.copy(
+                        flightSearchLoading = false,
+                        flightSearchError = e.message ?: "Flight not found"
+                    )
+                }
+            )
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // History
+    // -----------------------------------------------------------------------
+
+    fun loadHistory() {
+        _state.value = _state.value.copy(recentHistory = historyRepository.getHistory())
+    }
+
+    fun applyHistoryEntry(entry: HistoryEntry) {
+        val depAirport = Airport.ALL.firstOrNull { it.iata == entry.originIata }
+        val arrAirport = Airport.ALL.firstOrNull { it.iata == entry.destIata }
+        var newState = _state.value
+        if (depAirport != null) {
+            newState = newState.copy(
+                origin = depAirport,
+                originQuery = depAirport.displayName,
+                originSuggestions = emptyList()
+            )
+        }
+        if (arrAirport != null) {
+            newState = newState.copy(
+                destination = arrAirport,
+                destinationQuery = arrAirport.displayName,
+                destinationSuggestions = emptyList()
+            )
+        }
+        _state.value = newState
+    }
+
+    private fun saveCurrentRouteToHistory(severity: String) {
+        val s = _state.value
+        val dep = s.origin ?: return
+        val arr = s.destination ?: return
+        val dateStr = SimpleDateFormat("MMM d", Locale.US).format(Date())
+        val entry = HistoryEntry(
+            originIata = dep.iata,
+            originCity = dep.city,
+            destIata = arr.iata,
+            destCity = arr.city,
+            severity = severity,
+            dateFormatted = dateStr
+        )
+        historyRepository.saveEntry(entry)
+        _state.value = _state.value.copy(recentHistory = historyRepository.getHistory())
+    }
+
+    // -----------------------------------------------------------------------
     // Full reset
     // -----------------------------------------------------------------------
 
     /** Resets all route and forecast state to defaults. */
     fun clearRoute() {
-        _state.value = RouteUiState()
+        _state.value = RouteUiState(recentHistory = historyRepository.getHistory())
     }
 }

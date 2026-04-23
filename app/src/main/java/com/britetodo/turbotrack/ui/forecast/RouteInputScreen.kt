@@ -31,7 +31,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AirplanemodeActive
+import androidx.compose.material.icons.filled.FlightTakeoff
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -176,6 +180,29 @@ fun RouteInputScreen(viewModel: RouteViewModel) {
                     color = DotRed,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
+
+            // ── Flight number search ────────────────────────────────────────
+            FlightNumberSection(
+                flightNumber = state.flightNumber,
+                isLoading = state.flightSearchLoading,
+                error = state.flightSearchError,
+                onFlightNumberChange = { viewModel.setFlightNumber(it) },
+                onSearch = {
+                    focusManager.clearFocus()
+                    viewModel.searchByFlightNumber()
+                }
+            )
+
+            // ── Recent routes ──────────────────────────────────────────────
+            if (state.recentHistory.isNotEmpty()) {
+                RecentHistorySection(
+                    history = state.recentHistory,
+                    onSelect = { entry ->
+                        focusManager.clearFocus()
+                        viewModel.applyHistoryEntry(entry)
+                    }
                 )
             }
 
@@ -615,6 +642,175 @@ private fun ForecastPeriodCard(forecastDays: Int, onSelect: (Int) -> Unit) {
                     }
                 }
             }
+        }
+    }
+}
+
+// ── Flight Number Section ─────────────────────────────────────────────────────
+
+@Composable
+private fun FlightNumberSection(
+    flightNumber: String,
+    isLoading: Boolean,
+    error: String?,
+    onFlightNumberChange: (String) -> Unit,
+    onSearch: () -> Unit
+) {
+    val cardShape = RoundedCornerShape(20.dp)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(elevation = 2.dp, shape = cardShape, clip = false),
+        shape = cardShape,
+        colors = CardDefaults.cardColors(containerColor = TurboCard),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Text(
+                "Search by Flight Number",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextSecondary,
+                letterSpacing = 0.3.sp
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.FlightTakeoff,
+                    contentDescription = null,
+                    tint = ChipBlue,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                BasicTextField(
+                    value = flightNumber,
+                    onValueChange = onFlightNumberChange,
+                    textStyle = TextStyle(
+                        fontSize = 16.sp,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    cursorBrush = SolidColor(ChipBlue),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { inner ->
+                        Box {
+                            if (flightNumber.isEmpty()) {
+                                Text("e.g. AA123", fontSize = 16.sp, color = TextMuted)
+                            }
+                            inner()
+                        }
+                    }
+                )
+                Spacer(Modifier.width(8.dp))
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = ChipBlue
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (flightNumber.isNotBlank()) ChipBlue else Color(0xFFE5E5EA))
+                            .clickable(enabled = flightNumber.isNotBlank()) { onSearch() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = if (flightNumber.isNotBlank()) Color.White else TextMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+            if (error != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(error, color = DotRed, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+// ── Recent History Section ────────────────────────────────────────────────────
+
+@Composable
+private fun RecentHistorySection(
+    history: List<com.britetodo.turbotrack.data.preferences.HistoryEntry>,
+    onSelect: (com.britetodo.turbotrack.data.preferences.HistoryEntry) -> Unit
+) {
+    val cardShape = RoundedCornerShape(20.dp)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(elevation = 2.dp, shape = cardShape, clip = false),
+        shape = cardShape,
+        colors = CardDefaults.cardColors(containerColor = TurboCard),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.History,
+                    contentDescription = null,
+                    tint = TextMuted,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Recent",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextSecondary,
+                    letterSpacing = 0.3.sp
+                )
+            }
+            history.forEachIndexed { idx, entry ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelect(entry) }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "${entry.originIata} → ${entry.destIata}",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            "${entry.originCity} → ${entry.destCity}",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(entry.severity, fontSize = 11.sp, color = TextMuted)
+                        Text(entry.dateFormatted, fontSize = 11.sp, color = TextMuted)
+                    }
+                }
+                if (idx < history.lastIndex) {
+                    Divider(
+                        modifier = Modifier.padding(start = 16.dp),
+                        color = TurboDivider.copy(alpha = 0.4f),
+                        thickness = 0.5.dp
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
         }
     }
 }

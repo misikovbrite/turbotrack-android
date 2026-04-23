@@ -73,9 +73,12 @@ import com.google.maps.android.compose.rememberCameraPositionState
 @Composable
 fun TurbulenceMapScreen(
     modifier: Modifier = Modifier,
-    viewModel: MapViewModel = hiltViewModel()
+    viewModel: MapViewModel = hiltViewModel(),
+    settingsViewModel: com.britetodo.turbotrack.ui.settings.SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val isPremium by settingsViewModel.isPremium.collectAsState()
+    val hasSuperPro by settingsViewModel.hasSuperPro.collectAsState()
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState()
 
@@ -216,6 +219,20 @@ fun TurbulenceMapScreen(
                 .background(Color.White.copy(alpha = 0.92f), RoundedCornerShape(8.dp))
         ) {
             Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = TurboBlue)
+        }
+
+        // Super Pro banner
+        if (isPremium && !hasSuperPro) {
+            com.britetodo.turbotrack.ui.components.SuperProBanner(
+                source = "map",
+                onTap = { source ->
+                    settingsViewModel.analytics.logUpsellBannerClicked(source)
+                    settingsViewModel.triggerUpsell()
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 72.dp)
+            )
         }
     }
 
