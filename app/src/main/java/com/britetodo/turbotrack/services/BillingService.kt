@@ -190,21 +190,23 @@ class BillingService @Inject constructor(
 
         val purchasedIds = purchase.products
         val wasPremium = _isPremium.value
-        val token = purchase.purchaseToken
+        val orderId = purchase.orderId ?: purchase.purchaseToken
 
         if (purchasedIds.any { it in PREMIUM_PRODUCT_IDS }) {
             updatePremiumState(true)
             val productId = purchasedIds.first()
 
-            // Trial start → value=0; direct paid → full price
-            if (productHasTrial(productId)) {
-                analytics.logTrialStarted(productId, token)
-                saveTrialRecord(token, productId)
-            } else {
-                analytics.logPurchase(productId, productPriceUsd(productId), token)
+            if (!purchase.isAcknowledged) {
+                val price = productPriceUsd(productId)
+                val currency = productCurrency(productId)
+                if (productHasTrial(productId)) {
+                    analytics.logTrialStarted(productId, orderId, currency)
+                    saveTrialRecord(purchase.purchaseToken, productId)
+                } else {
+                    analytics.logPurchase(productId, price, orderId, currency)
+                }
             }
 
-            // Show upsell if just became premium and not already super pro
             if (!wasPremium && !_hasSuperPro.value && !prefs.getBoolean(KEY_UPSELL_SHOWN, false)) {
                 prefs.edit().putBoolean(KEY_UPSELL_SHOWN, true).apply()
                 scope.launch {
@@ -214,9 +216,9 @@ class BillingService @Inject constructor(
             }
         }
 
-        if (purchasedIds.any { it == PRODUCT_SUPER_PRO }) {
+        if (purchasedIds.any { it == PRODUCT_SUPER_PRO } && !purchase.isAcknowledged) {
             updateSuperProState(true)
-            analytics.logPurchase(PRODUCT_SUPER_PRO, PRICE_SUPER_PRO, token)
+            analytics.logPurchase(PRODUCT_SUPER_PRO, productPriceUsd(PRODUCT_SUPER_PRO), orderId, productCurrency(PRODUCT_SUPER_PRO))
         }
 
         acknowledgePurchaseIfNeeded(purchase)
@@ -248,7 +250,7 @@ class BillingService @Inject constructor(
         if (System.currentTimeMillis() - startTime < trialMs) return
 
         // Trial period has elapsed — user is now a paying subscriber
-        analytics.logSubscriptionConverted(productId, productPriceUsd(productId), purchase.purchaseToken)
+        analytics.logSubscriptionConverted(productId, productPriceUsd(productId), purchase.purchaseToken, productCurrency(productId))
 
         // Remove record so this fires exactly once per trial
         prefs.edit()
@@ -282,12 +284,32 @@ class BillingService @Inject constructor(
         }
     }
 
-    private fun productPriceUsd(productId: String): Double = when (productId) {
-        PRODUCT_WEEKLY -> PRICE_WEEKLY
-        PRODUCT_YEARLY -> PRICE_YEARLY
-        PRODUCT_SUPER_PRO -> PRICE_SUPER_PRO
-        else -> 0.0
+    private fun productPriceUsd(productId: String): Double {
+        val priceMicros = _products.value[productId]
+            ?.subscriptionOfferDetails
+            ?.firstOrNull()
+            ?.pricingPhases
+            ?.pricingPhaseList
+            ?.lastOrNull { it.priceAmountMicros > 0 }
+            ?.priceAmountMicros
+        if (priceMicros != null && priceMicros > 0) return priceMicros / 1_000_000.0
+        return when (productId) {
+            PRODUCT_WEEKLY -> PRICE_WEEKLY
+            PRODUCT_YEARLY -> PRICE_YEARLY
+            PRODUCT_SUPER_PRO -> PRICE_SUPER_PRO
+            else -> 0.0
+        }
     }
+
+    private fun productCurrency(productId: String): String =
+        _products.value[productId]
+            ?.subscriptionOfferDetails
+            ?.firstOrNull()
+            ?.pricingPhases
+            ?.pricingPhaseList
+            ?.lastOrNull { it.priceAmountMicros > 0 }
+            ?.priceCurrencyCode
+            ?: "USD"
 
     companion object {
         const val PRODUCT_WEEKLY    = "turb_weekly_4.99"

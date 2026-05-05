@@ -88,7 +88,6 @@ class AnalyticsService @Inject constructor(
                 putString(FirebaseAnalytics.Param.TRANSACTION_ID, transactionId)
             }
         }
-        // Log both as named event (for segmentation) and as standard PURCHASE (for GA4/Ads import)
         analytics.logEvent("subscription_converted", params)
         analytics.logEvent(FirebaseAnalytics.Event.PURCHASE, params)
     }
